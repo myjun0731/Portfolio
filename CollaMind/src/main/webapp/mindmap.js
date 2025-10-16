@@ -86,6 +86,12 @@
         lastMousePos: { x: 0, y: 0 }
     };
 
+    const selectionState = {
+        active: false,
+        start: null,
+        boxElement: null
+    };
+
     // DOM 요소 참조
     const canvas = document.getElementById('mindmap-canvas');
     const minimapCanvas = document.getElementById('minimap-canvas');
@@ -255,9 +261,16 @@
             y: e.clientY - rect.top
         };
 
+        if (e.button === 0 && (e.ctrlKey || e.metaKey)) {
+            startSelection(e, rect);
+            return;
+        }
+
         if (mindmapState.currentMode === 'pan' || e.button === 1) { // 중간 마우스 버튼
             ui.isDragging = true;
             canvas.style.cursor = 'grabbing';
+        } else if (e.button === 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+            clearSelection();
         }
     }
 
@@ -268,6 +281,10 @@
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
         };
+
+        if (selectionState.active) {
+            return;
+        }
 
         if (ui.isDragging && (mindmapState.currentMode === 'pan' || e.buttons === 4)) {
             const deltaX = currentPos.x - ui.lastMousePos.x;
@@ -288,6 +305,87 @@
     function onCanvasMouseUp(e) {
         ui.isDragging = false;
         canvas.style.cursor = mindmapState.currentMode === 'pan' ? 'grab' : 'crosshair';
+    }
+
+    function startSelection(e, rect) {
+        if (selectionState.active && selectionState.boxElement && selectionState.boxElement.parentElement) {
+            selectionState.boxElement.parentElement.removeChild(selectionState.boxElement);
+        }
+        resetSelectionState();
+
+        selectionState.active = true;
+        selectionState.start = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+
+        selectionState.boxElement = document.createElement('div');
+        selectionState.boxElement.className = 'selection-box';
+        selectionState.boxElement.style.left = `${selectionState.start.x}px`;
+        selectionState.boxElement.style.top = `${selectionState.start.y}px`;
+        selectionState.boxElement.style.width = '0px';
+        selectionState.boxElement.style.height = '0px';
+        canvas.parentElement.appendChild(selectionState.boxElement);
+
+        document.addEventListener('mousemove', onSelectionMouseMove);
+        document.addEventListener('mouseup', onSelectionMouseUp, { once: true });
+    }
+
+    function onSelectionMouseMove(e) {
+        if (!selectionState.active || !selectionState.start) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        const x = Math.min(selectionState.start.x, currentX);
+        const y = Math.min(selectionState.start.y, currentY);
+        const w = Math.abs(selectionState.start.x - currentX);
+        const h = Math.abs(selectionState.start.y - currentY);
+
+        if (selectionState.boxElement) {
+            selectionState.boxElement.style.left = `${x}px`;
+            selectionState.boxElement.style.top = `${y}px`;
+            selectionState.boxElement.style.width = `${w}px`;
+            selectionState.boxElement.style.height = `${h}px`;
+        }
+    }
+
+    function onSelectionMouseUp(e) {
+        if (!selectionState.active || !selectionState.boxElement) {
+            resetSelectionState();
+            return;
+        }
+
+        const selectionRect = selectionState.boxElement.getBoundingClientRect();
+
+        document.querySelectorAll('.mind-node').forEach(nodeEl => {
+            const nodeRect = nodeEl.getBoundingClientRect();
+            const intersects = !(nodeRect.right < selectionRect.left ||
+                                 nodeRect.left > selectionRect.right ||
+                                 nodeRect.bottom < selectionRect.top ||
+                                 nodeRect.top > selectionRect.bottom);
+
+            if (intersects) {
+                selectNode(nodeEl.dataset.id);
+            }
+        });
+
+        if (selectionState.boxElement && selectionState.boxElement.parentElement) {
+            selectionState.boxElement.parentElement.removeChild(selectionState.boxElement);
+        }
+
+        resetSelectionState();
+        updateProperties();
+        updateStatus();
+    }
+
+    function resetSelectionState() {
+        document.removeEventListener('mousemove', onSelectionMouseMove);
+        document.removeEventListener('mouseup', onSelectionMouseUp);
+        selectionState.active = false;
+        selectionState.start = null;
+        selectionState.boxElement = null;
     }
 
     // 캔버스 휠 (줌)
@@ -1835,90 +1933,4 @@
         init();
     }
 
-    let selectionBox = null;
-    let selectionStart = null;
-    let isSelecting = false;
-
-
-    function onCanvasMouseDown(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-
-    // Ctrl 키 누른 상태에서 왼쪽 버튼 드래그 → 멀티 선택 박스
-    if (e.button === 0 && e.ctrlKey) {
-    isSelecting = true;
-    selectionStart = { x, y };
-
-
-    selectionBox = document.createElement('div');
-    selectionBox.className = 'selection-box';
-    selectionBox.style.left = x + 'px';
-    selectionBox.style.top = y + 'px';
-    selectionBox.style.width = '0px';
-    selectionBox.style.height = '0px';
-    canvas.parentElement.appendChild(selectionBox);
-
-
-    document.addEventListener('mousemove', onSelectionMouseMove);
-    document.addEventListener('mouseup', onSelectionMouseUp);
-    return;
-    }
-
-
-    // === 기존 Pan/노드 선택 로직 ===
-    if (mindmapState.currentMode === 'pan' || e.button === 1) {
-    ui.isDragging = true;
-    canvas.style.cursor = 'grabbing';
-    }
-    }
-
-
-    function onSelectionMouseMove(e) {
-    if (!isSelecting || !selectionStart) return;
-
-
-    const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
-
-
-    const x = Math.min(selectionStart.x, currentX);
-    const y = Math.min(selectionStart.y, currentY);
-    const w = Math.abs(selectionStart.x - currentX);
-    const h = Math.abs(selectionStart.y - currentY);
-
-
-    selectionBox.style.left = x + 'px';
-    selectionBox.style.top = y + 'px';
-    selectionBox.style.width = w + 'px';
-    selectionBox.style.height = h + 'px';
-    }
-
-
-    function onSelectionMouseUp(e) {
-    if (!isSelecting) return;
-
-
-    const boxRect = selectionBox.getBoundingClientRect();
-    document.querySelectorAll('.mind-node').forEach(nodeEl => {
-    const nodeRect = nodeEl.getBoundingClientRect();
-    if (!(nodeRect.right < boxRect.left || nodeRect.left > boxRect.right ||
-    nodeRect.bottom < boxRect.top || nodeRect.top > boxRect.bottom)) {
-    const nodeId = nodeEl.dataset.id;
-    selectNode(nodeId);
-    }
-    });
-
-
-    selectionBox.remove();
-    selectionBox = null;
-    selectionStart = null;
-    isSelecting = false;
-
-
-    document.removeEventListener('mousemove', onSelectionMouseMove);
-    document.removeEventListener('mouseup', onSelectionMouseUp);
-    }
 })();

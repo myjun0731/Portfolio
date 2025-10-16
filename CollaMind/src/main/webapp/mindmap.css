@@ -611,11 +611,4 @@ body {
     border-radius: 4px;
     min-width: 50px;
 }
-
-.selection-box {
-position: absolute;
-border: 1px dashed #0e7db8;
-background-color: rgba(14, 125, 184, 0.1);
-pointer-events: none;
-z-index: 15;
-}
+
