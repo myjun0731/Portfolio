@@ -5,7 +5,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MindMap IDE - Demo</title>
+<title>CollaMind – 실시간 협업 마인드맵</title>
 
 <link rel="stylesheet" href="mindmap.css">
 
@@ -104,10 +104,10 @@
 		<div class="menu-item" data-menu="help">Help</div>
 	</div>
 
-	<!-- 툴바 -->
-	<div class="toolbar">
-		<button class="toolbar-button" data-action="new">
-			📄
+        <!-- 툴바 -->
+        <div class="toolbar">
+                <button class="toolbar-button" data-action="new">
+                        📄
 			<div class="tooltip">새 마인드맵 (Ctrl+N)</div>
 		</button>
 		<button class="toolbar-button" data-action="open">
@@ -149,11 +149,31 @@
 			🔍
 			<div class="tooltip">축소 (Ctrl+-)</div>
 		</button>
-		<button class="toolbar-button" data-action="zoomfit">
-			🎯
-			<div class="tooltip">전체보기 (Ctrl+0)</div>
-		</button>
-	</div>
+                <button class="toolbar-button" data-action="zoomfit">
+                        🎯
+                        <div class="tooltip">전체보기 (Ctrl+0)</div>
+                </button>
+        </div>
+
+        <!-- 협업 상태 바 -->
+        <div class="collaboration-bar">
+                <div class="collab-status">
+                        <span class="connection-indicator" id="collaboration-indicator" data-state="disconnected"></span>
+                        <div class="collab-status-text">
+                                <strong id="collaboration-status-text">오프라인</strong>
+                                <small id="collaboration-latency">연결 대기 중</small>
+                        </div>
+                </div>
+                <div class="collab-presence">
+                        <span class="presence-label">현재 참여자</span>
+                        <div class="presence-avatars" id="collaboration-avatars"></div>
+                </div>
+                <div class="collab-actions">
+                        <button class="collab-btn" data-action="share">공유 링크</button>
+                        <button class="collab-btn" data-action="resync">동기화 점검</button>
+                        <button class="collab-btn" data-action="toggle-offline">오프라인 모드</button>
+                </div>
+        </div>
 
 	<!-- 메인 컨테이너 -->
 	<div class="main-container">
@@ -214,9 +234,9 @@
 					<button class="panel-btn" data-action="reset">↺</button>
 				</div>
 			</div>
-			<div class="panel-content">
-				<div class="properties-section">
-					<div class="property-item">
+                        <div class="panel-content">
+                                <div class="properties-section">
+                                        <div class="property-item">
 						<span class="property-label">노드 텍스트:</span> <input type="text"
 							class="property-input" id="prop-text" value="">
 					</div>
@@ -241,14 +261,29 @@
 						<span class="property-label">X 좌표:</span> <input type="number"
 							class="property-input" id="prop-x" value="0">
 					</div>
-					<div class="property-item">
-						<span class="property-label">Y 좌표:</span> <input type="number"
-							class="property-input" id="prop-y" value="0">
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+                                        <div class="property-item">
+                                                <span class="property-label">Y 좌표:</span> <input type="number"
+                                                        class="property-input" id="prop-y" value="0">
+                                        </div>
+                                </div>
+                                <div class="collaboration-panel">
+                                        <div class="collaboration-panel-title">실시간 활동</div>
+                                        <div class="collaboration-activity" id="collaboration-activity"></div>
+                                </div>
+                                <div class="collaboration-panel">
+                                        <div class="collaboration-panel-title">동기화 상태</div>
+                                        <ul class="sync-status" id="sync-status">
+                                                <li>
+                                                        <span>문서 버전</span><span id="collaboration-version">v0</span>
+                                                </li>
+                                                <li>
+                                                        <span>마지막 업데이트</span><span id="collaboration-updated-at">-</span>
+                                                </li>
+                                        </ul>
+                                </div>
+                        </div>
+                </div>
+        </div>
 
 	<!-- 하단 패널: 콘솔 -->
 	<div class="bottom-panel">
@@ -272,13 +307,14 @@
 			<span class="status-item" id="status-mode">선택 모드</span> <span
 				class="status-item" id="status-selection">선택: 없음</span>
 		</div>
-		<div class="status-right">
-			<span class="status-item" id="status-zoom">줌: 100%</span> <span
-				class="status-item" id="status-nodes">노드: 4개</span> <span
-				class="status-item" id="status-connections">연결: 3개</span> <span
-				class="status-item">UTF-8</span>
-		</div>
-	</div>
+                <div class="status-right">
+                        <span class="status-item" id="status-zoom">줌: 100%</span> <span
+                                class="status-item" id="status-nodes">노드: 4개</span> <span
+                                class="status-item" id="status-connections">연결: 3개</span> <span
+                                class="status-item" id="status-collaboration">협업: 오프라인</span> <span
+                                class="status-item">UTF-8</span>
+                </div>
+        </div>
 
 	<!-- 컨텍스트 메뉴 -->
 	<div class="context-menu" id="context-menu">

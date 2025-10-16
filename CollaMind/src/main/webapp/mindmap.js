@@ -17,6 +17,24 @@
         connectionIdCounter: 1
     };
 
+    const collaborationState = {
+        localUser: null,
+        presence: new Map(),
+        socket: null,
+        connectionState: 'disconnected',
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5,
+        pendingMessages: [],
+        pingInterval: null,
+        latency: null,
+        documentVersion: 0,
+        lastUpdate: null,
+        suppressBroadcast: false,
+        offlineDemoTimer: null,
+        activityHistory: [],
+        reconnectTimer: null
+    };
+
     const projectExplorerState = {
         treeData: [
             {
@@ -83,7 +101,16 @@
         dragStartPos: null, // 드래그 시작 위치 추가
         dragOffset: { x: 0, y: 0 },
         connectFrom: null,
-        lastMousePos: { x: 0, y: 0 }
+        lastMousePos: { x: 0, y: 0 },
+        dragInitialPositions: new Map(),
+        dragHasMoved: false
+    };
+
+    const selectionState = {
+        isSelecting: false,
+        start: null,
+        boxElement: null,
+        additive: false
     };
 
     // DOM 요소 참조
@@ -91,6 +118,14 @@
     const minimapCanvas = document.getElementById('minimap-canvas');
     const consoleOutput = document.getElementById('console');
     const contextMenu = document.getElementById('context-menu');
+    const collaborationIndicator = document.getElementById('collaboration-indicator');
+    const collaborationStatusText = document.getElementById('collaboration-status-text');
+    const collaborationLatency = document.getElementById('collaboration-latency');
+    const collaborationAvatars = document.getElementById('collaboration-avatars');
+    const collaborationActivityContainer = document.getElementById('collaboration-activity');
+    const collaborationVersionLabel = document.getElementById('collaboration-version');
+    const collaborationUpdatedAtLabel = document.getElementById('collaboration-updated-at');
+    const statusCollaboration = document.getElementById('status-collaboration');
     const GRID_BASE_SIZE = 20;
 
     // 좌표 변환 유틸리티
@@ -131,6 +166,618 @@
         canvas.style.backgroundPosition = `${offsetX}px ${offsetY}px`;
     }
 
+    // === 협업 상태 관리 ===
+    function initCollaboration() {
+        if (!collaborationState.localUser) {
+            collaborationState.localUser = createLocalUserProfile();
+        }
+        registerPresence(collaborationState.localUser);
+        updateCollaborationUI('실시간 협업 준비 완료');
+        setTimeout(() => {
+            connectCollaboration();
+        }, 300);
+    }
+
+    function createLocalUserProfile() {
+        let storedName = null;
+        try {
+            storedName = localStorage.getItem('collamind-display-name');
+        } catch (error) {
+            storedName = null;
+        }
+        const fallbackNames = ['에디터', '메이커', '플래너', '크리에이터'];
+        if (!storedName || !storedName.trim()) {
+            storedName = `${fallbackNames[Math.floor(Math.random() * fallbackNames.length)]} ${Math.floor(Math.random() * 900 + 100)}`;
+        }
+        const palette = ['#4caf50', '#ffb300', '#8e24aa', '#03a9f4', '#f44336', '#009688'];
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        return {
+            id: `local-${Math.random().toString(36).slice(2, 8)}`,
+            name: storedName.trim(),
+            color,
+            role: 'Editor',
+            isLocal: true
+        };
+    }
+
+    function getConnectionLabel() {
+        switch (collaborationState.connectionState) {
+            case 'connected':
+                return '실시간 동기화됨';
+            case 'connecting':
+                return '연결 시도 중...';
+            case 'demo':
+                return '오프라인 데모 모드';
+            default:
+                return '오프라인';
+        }
+    }
+
+    function updateCollaborationUI(statusMessage = null) {
+        if (collaborationIndicator) {
+            collaborationIndicator.dataset.state = collaborationState.connectionState;
+        }
+        if (collaborationStatusText) {
+            collaborationStatusText.textContent = statusMessage || getConnectionLabel();
+        }
+        if (collaborationLatency) {
+            collaborationLatency.textContent = collaborationState.latency != null
+                ? `지연: ${Math.round(collaborationState.latency)}ms`
+                : (collaborationState.connectionState === 'connected' ? '지연 측정 중' : '연결 대기 중');
+        }
+        updatePresenceList();
+        updateCollaborationStatusBar();
+    }
+
+    function registerPresence(user) {
+        if (!user || !user.id) return;
+        collaborationState.presence.set(user.id, {
+            ...collaborationState.presence.get(user.id),
+            ...user,
+            lastActive: Date.now()
+        });
+        updatePresenceList();
+    }
+
+    function updatePresenceList() {
+        if (!collaborationAvatars) return;
+        collaborationAvatars.innerHTML = '';
+        const users = Array.from(collaborationState.presence.values());
+        users.sort((a, b) => {
+            if ((a.isLocal ? 0 : 1) === (b.isLocal ? 0 : 1)) {
+                return (a.name || '').localeCompare(b.name || '', 'ko');
+            }
+            return a.isLocal ? -1 : 1;
+        });
+        const fragment = document.createDocumentFragment();
+        users.forEach(user => fragment.appendChild(createPresenceAvatar(user)));
+        collaborationAvatars.appendChild(fragment);
+    }
+
+    function createPresenceAvatar(user) {
+        const avatar = document.createElement('div');
+        avatar.className = 'presence-avatar';
+        avatar.dataset.local = user.isLocal ? 'true' : 'false';
+        avatar.style.background = user.color || '#5a6287';
+        avatar.textContent = (user.name || '?').trim().charAt(0).toUpperCase();
+        const tooltip = document.createElement('div');
+        tooltip.className = 'avatar-tooltip';
+        tooltip.textContent = `${user.name || '참여자'}${user.role ? ` · ${user.role}` : ''}`;
+        avatar.appendChild(tooltip);
+        return avatar;
+    }
+
+    function updateCollaborationStatusBar() {
+        if (statusCollaboration) {
+            statusCollaboration.textContent = `협업: ${getConnectionLabel()}`;
+            statusCollaboration.dataset.state = collaborationState.connectionState;
+        }
+        if (collaborationVersionLabel) {
+            collaborationVersionLabel.textContent = `v${collaborationState.documentVersion}`;
+        }
+        if (collaborationUpdatedAtLabel) {
+            collaborationUpdatedAtLabel.textContent = collaborationState.lastUpdate
+                ? new Date(collaborationState.lastUpdate).toLocaleTimeString()
+                : '-';
+        }
+    }
+
+    function disconnectCollaborationSocket() {
+        if (collaborationState.socket) {
+            try {
+                collaborationState.socket.close();
+            } catch (error) {
+                console.warn('collaboration socket close error', error);
+            }
+            collaborationState.socket = null;
+        }
+        stopPing();
+    }
+
+    function buildCollaborationUrl() {
+        const protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+        const host = location.host || 'localhost:8080';
+        return `${protocol}${host}/collaboration`;
+    }
+
+    function connectCollaboration() {
+        stopOfflineDemoMode();
+        if (typeof WebSocket === 'undefined') {
+            startOfflineDemoMode('현재 환경에서는 WebSocket을 사용할 수 없습니다.');
+            return;
+        }
+        disconnectCollaborationSocket();
+        if (collaborationState.reconnectTimer) {
+            clearTimeout(collaborationState.reconnectTimer);
+            collaborationState.reconnectTimer = null;
+        }
+        collaborationState.connectionState = 'connecting';
+        collaborationState.latency = null;
+        updateCollaborationUI('실시간 서버 연결 중...');
+        let socket;
+        try {
+            socket = new WebSocket(buildCollaborationUrl());
+        } catch (error) {
+            onSocketError(error);
+            scheduleReconnect();
+            return;
+        }
+        collaborationState.socket = socket;
+        socket.addEventListener('open', onSocketOpen);
+        socket.addEventListener('message', onSocketMessage);
+        socket.addEventListener('close', onSocketClose);
+        socket.addEventListener('error', onSocketError);
+    }
+
+    function onSocketOpen() {
+        collaborationState.connectionState = 'connected';
+        collaborationState.reconnectAttempts = 0;
+        updateCollaborationUI('실시간 서버에 연결되었습니다');
+        recordActivity('system', '실시간 협업 서버와 연결되었습니다.', { level: 'info' });
+        sendCollaborationMessage({
+            type: 'presence',
+            payload: { user: collaborationState.localUser, status: 'online' }
+        });
+        flushPendingMessages();
+        startPing();
+    }
+
+    function onSocketMessage(event) {
+        let message;
+        try {
+            message = JSON.parse(event.data);
+        } catch (error) {
+            console.warn('Invalid collaboration payload', error);
+            return;
+        }
+        if (!message || !message.type) return;
+        switch (message.type) {
+            case 'pong':
+                handlePong(message);
+                break;
+            case 'presence':
+                handlePresencePayload(message.payload);
+                break;
+            case 'operation':
+                handleCollaborationOperation(message);
+                break;
+            case 'activity':
+                if (message.payload) {
+                    recordActivity('remote', message.payload.message || '활동 업데이트', { actor: message.actor });
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    function handlePresencePayload(payload) {
+        if (!payload) return;
+        if (Array.isArray(payload.users)) {
+            payload.users.forEach(registerPresence);
+        }
+        if (payload.user) {
+            registerPresence(payload.user);
+        }
+    }
+
+    function handleCollaborationOperation(message) {
+        applyRemoteOperation(message);
+    }
+
+    function startPing() {
+        stopPing();
+        collaborationState.pingInterval = setInterval(() => {
+            sendCollaborationMessage({ type: 'ping', timestamp: Date.now() });
+        }, 15000);
+    }
+
+    function stopPing() {
+        if (collaborationState.pingInterval) {
+            clearInterval(collaborationState.pingInterval);
+            collaborationState.pingInterval = null;
+        }
+    }
+
+    function handlePong(message) {
+        if (typeof message.timestamp === 'number') {
+            collaborationState.latency = Date.now() - message.timestamp;
+            updateCollaborationUI();
+        }
+    }
+
+    function onSocketClose() {
+        if (collaborationState.connectionState === 'demo') return;
+        collaborationState.connectionState = 'disconnected';
+        collaborationState.latency = null;
+        updateCollaborationUI('연결이 종료되었습니다. 재시도합니다.');
+        scheduleReconnect();
+    }
+
+    function onSocketError(error) {
+        if (collaborationState.connectionState !== 'demo') {
+            collaborationState.connectionState = 'disconnected';
+            collaborationState.latency = null;
+            recordActivity('alert', '실시간 서버와의 통신에 문제가 발생했습니다.', { error: error?.message });
+            updateCollaborationUI('연결 오류');
+            scheduleReconnect();
+        }
+    }
+
+    function scheduleReconnect() {
+        if (collaborationState.connectionState === 'demo') return;
+        const attempt = ++collaborationState.reconnectAttempts;
+        if (attempt > collaborationState.maxReconnectAttempts) {
+            startOfflineDemoMode('서버 연결이 원활하지 않아 데모 모드로 전환합니다.');
+            return;
+        }
+        const delay = Math.min(1000 * attempt, 5000);
+        if (collaborationState.reconnectTimer) {
+            clearTimeout(collaborationState.reconnectTimer);
+        }
+        collaborationState.reconnectTimer = setTimeout(connectCollaboration, delay);
+    }
+
+    function flushPendingMessages() {
+        if (!collaborationState.socket || collaborationState.socket.readyState !== WebSocket.OPEN) return;
+        while (collaborationState.pendingMessages.length > 0) {
+            const payload = collaborationState.pendingMessages.shift();
+            collaborationState.socket.send(JSON.stringify(payload));
+        }
+    }
+
+    function sendCollaborationMessage(message) {
+        if (!message) return;
+        if (collaborationState.socket && collaborationState.socket.readyState === WebSocket.OPEN) {
+            collaborationState.socket.send(JSON.stringify(message));
+        } else {
+            collaborationState.pendingMessages.push(message);
+        }
+    }
+
+    function withSuppressedBroadcast(callback) {
+        collaborationState.suppressBroadcast = true;
+        try {
+            callback();
+        } finally {
+            collaborationState.suppressBroadcast = false;
+        }
+    }
+
+    function applyRemoteOperation(message) {
+        if (!message || !message.payload) return;
+        withSuppressedBroadcast(() => {
+            switch (message.kind) {
+                case 'node-create':
+                    if (message.payload.node && !mindmapState.nodes.has(message.payload.node.id)) {
+                        const nodeData = message.payload.node;
+                        createNode(nodeData.text, nodeData.x, nodeData.y, nodeData.parentId || null, {
+                            id: nodeData.id,
+                            style: nodeData.style,
+                            isRoot: nodeData.isRoot,
+                            skipBroadcast: true
+                        });
+                    }
+                    break;
+                case 'node-delete':
+                    if (Array.isArray(message.payload.nodeIds)) {
+                        message.payload.nodeIds.forEach(id => {
+                            const node = mindmapState.nodes.get(id);
+                            if (node && node.element) {
+                                node.element.remove();
+                            }
+                            mindmapState.nodes.delete(id);
+                            mindmapState.selectedNodes.delete(id);
+                        });
+                        mindmapState.connections.forEach((conn, connId) => {
+                            if (message.payload.nodeIds.includes(conn.from) || message.payload.nodeIds.includes(conn.to)) {
+                                mindmapState.connections.delete(connId);
+                            }
+                        });
+                        render();
+                        updateMinimap();
+                    }
+                    break;
+                case 'node-move':
+                    if (Array.isArray(message.payload.nodes)) {
+                        message.payload.nodes.forEach(nodeInfo => {
+                            const node = mindmapState.nodes.get(nodeInfo.id);
+                            if (!node) return;
+                            node.x = nodeInfo.x;
+                            node.y = nodeInfo.y;
+                            applyNodePosition(node);
+                        });
+                        render();
+                        updateMinimap();
+                    }
+                    break;
+                case 'node-style':
+                case 'node-update':
+                    if (Array.isArray(message.payload.nodeIds) && message.payload.changes) {
+                        message.payload.nodeIds.forEach(nodeId => {
+                            const node = mindmapState.nodes.get(nodeId);
+                            if (!node) return;
+                            const changes = message.payload.changes;
+                            if (changes.text !== undefined) {
+                                node.text = changes.text;
+                                if (node.element) node.element.textContent = changes.text;
+                            }
+                            if (changes.backgroundColor) {
+                                node.style.backgroundColor = changes.backgroundColor;
+                                if (node.element) node.element.style.backgroundColor = changes.backgroundColor;
+                            }
+                            if (changes.color) {
+                                node.style.color = changes.color;
+                                if (node.element) node.element.style.color = changes.color;
+                            }
+                            if (changes.fontSize) {
+                                node.style.fontSize = changes.fontSize;
+                                if (node.element) node.element.style.fontSize = `${changes.fontSize}px`;
+                            }
+                            if (changes.borderColor) {
+                                node.style.borderColor = changes.borderColor;
+                                if (node.element) node.element.style.borderColor = changes.borderColor;
+                            }
+                            if (changes.x !== undefined) {
+                                node.x = changes.x;
+                                applyNodePosition(node);
+                            }
+                            if (changes.y !== undefined) {
+                                node.y = changes.y;
+                                applyNodePosition(node);
+                            }
+                        });
+                        render();
+                        updateMinimap();
+                    }
+                    break;
+                case 'connection-create':
+                    if (message.payload && message.payload.id) {
+                        if (!mindmapState.connections.has(message.payload.id)) {
+                            mindmapState.connections.set(message.payload.id, {
+                                id: message.payload.id,
+                                from: message.payload.from,
+                                to: message.payload.to
+                            });
+                            render();
+                            updateMinimap();
+                        }
+                    }
+                    break;
+                case 'connection-delete':
+                    if (Array.isArray(message.payload.ids)) {
+                        message.payload.ids.forEach(id => mindmapState.connections.delete(id));
+                        render();
+                        updateMinimap();
+                    }
+                    break;
+                default:
+                    break;
+            }
+        });
+        updateUI();
+        if (message.actor) {
+            registerPresence(message.actor);
+        }
+        const description = formatOperationMessage(message.kind, message.payload);
+        recordActivity('remote', description, { version: message.version, actor: message.actor });
+        updateCollaborationMetadata(message);
+    }
+
+    function formatOperationMessage(kind, payload) {
+        switch (kind) {
+            case 'node-create':
+                return `새 노드 생성: ${payload?.node?.text || '제목 없음'}`;
+            case 'node-delete':
+                return `${payload?.nodeIds?.length || 0}개 노드 삭제`;
+            case 'node-move':
+                return `${payload?.nodes?.length || 0}개 노드 위치 이동`;
+            case 'node-style':
+            case 'node-update':
+                return '노드 속성 업데이트';
+            case 'connection-create':
+                return '노드 연결 추가';
+            case 'connection-delete':
+                return '노드 연결 삭제';
+            default:
+                return '변경 사항 동기화';
+        }
+    }
+
+    function updateCollaborationMetadata(message) {
+        if (message && message.version) {
+            collaborationState.documentVersion = Math.max(collaborationState.documentVersion, message.version);
+        } else {
+            collaborationState.documentVersion += 1;
+        }
+        if (message && message.timestamp) {
+            collaborationState.lastUpdate = message.timestamp;
+        } else {
+            collaborationState.lastUpdate = Date.now();
+        }
+        updateCollaborationStatusBar();
+    }
+
+    function recordActivity(source, message, meta = {}) {
+        if (!message || !collaborationActivityContainer) return;
+        const item = document.createElement('div');
+        item.className = `activity-item activity-${getActivitySourceClass(source)}`;
+        const headline = document.createElement('div');
+        headline.className = 'activity-headline';
+        const title = document.createElement('span');
+        title.textContent = message;
+        const actor = document.createElement('span');
+        actor.textContent = meta.actor?.name || (source === 'local' ? collaborationState.localUser?.name || '나' : '시스템');
+        headline.appendChild(title);
+        headline.appendChild(actor);
+        const metaRow = document.createElement('div');
+        metaRow.className = 'activity-meta';
+        const versionText = meta.version ? `v${meta.version}` : '';
+        metaRow.innerHTML = `<span>${new Date().toLocaleTimeString()}</span><span>${versionText}</span>`;
+        item.appendChild(headline);
+        item.appendChild(metaRow);
+        collaborationActivityContainer.prepend(item);
+        collaborationState.activityHistory.unshift({ source, message, timestamp: Date.now() });
+        pruneActivityLog();
+    }
+
+    function getActivitySourceClass(source) {
+        switch (source) {
+            case 'local':
+                return 'local';
+            case 'remote':
+                return 'remote';
+            case 'alert':
+                return 'alert';
+            default:
+                return 'system';
+        }
+    }
+
+    function pruneActivityLog() {
+        const maxEntries = 25;
+        while (collaborationActivityContainer.childNodes.length > maxEntries) {
+            collaborationActivityContainer.removeChild(collaborationActivityContainer.lastChild);
+        }
+        if (collaborationState.activityHistory.length > maxEntries) {
+            collaborationState.activityHistory.length = maxEntries;
+        }
+    }
+
+    function startOfflineDemoMode(reason = '네트워크 연결을 사용할 수 없습니다.') {
+        disconnectCollaborationSocket();
+        collaborationState.connectionState = 'demo';
+        collaborationState.latency = null;
+        updateCollaborationUI('데모 모드 활성화');
+        recordActivity('system', reason, { level: 'info' });
+        if (collaborationState.offlineDemoTimer) {
+            clearInterval(collaborationState.offlineDemoTimer);
+        }
+        const demoUsers = [
+            { id: 'demo-ux', name: 'UX Buddy', color: '#ff8a65', role: 'Designer', isLocal: false },
+            { id: 'demo-ai', name: 'InsightBot', color: '#7e57c2', role: 'AI Assistant', isLocal: false }
+        ];
+        demoUsers.forEach(registerPresence);
+        let scenarioIndex = 0;
+        function runDemoScript() {
+            const actor = demoUsers[scenarioIndex % demoUsers.length];
+            scenarioIndex++;
+            const operations = [
+                () => applyRemoteOperation({ type: 'operation', kind: 'node-style', payload: { nodeIds: ['2'], changes: { backgroundColor: '#7e57c2' } }, actor, version: collaborationState.documentVersion + 1, timestamp: Date.now() }),
+                () => applyRemoteOperation({ type: 'operation', kind: 'node-update', payload: { nodeIds: ['3'], changes: { text: '원격 제안 아이디어' } }, actor, version: collaborationState.documentVersion + 1, timestamp: Date.now() }),
+                () => applyRemoteOperation({ type: 'operation', kind: 'node-create', payload: { node: { id: `demo-${Date.now()}`, text: '데모 노드', x: 520 + Math.random() * 120, y: 280 + Math.random() * 120, parentId: '1', isRoot: false, style: { backgroundColor: '#26a69a', color: '#ffffff', borderColor: '#1f8f81', fontSize: 14 } } }, actor, version: collaborationState.documentVersion + 1, timestamp: Date.now() })
+            ];
+            const operation = operations[Math.floor(Math.random() * operations.length)];
+            operation();
+        }
+        collaborationState.offlineDemoTimer = setInterval(runDemoScript, 15000);
+        runDemoScript();
+    }
+
+    function stopOfflineDemoMode() {
+        if (collaborationState.offlineDemoTimer) {
+            clearInterval(collaborationState.offlineDemoTimer);
+            collaborationState.offlineDemoTimer = null;
+        }
+        [...collaborationState.presence.keys()].forEach(id => {
+            if (id.startsWith('demo-')) {
+                collaborationState.presence.delete(id);
+            }
+        });
+        updatePresenceList();
+    }
+
+    function toggleOfflineMode() {
+        if (collaborationState.connectionState === 'demo') {
+            stopOfflineDemoMode();
+            collaborationState.connectionState = 'disconnected';
+            updateCollaborationUI('오프라인 모드가 종료되었습니다.');
+            connectCollaboration();
+        } else {
+            startOfflineDemoMode('사용자 요청으로 데모 모드를 시작합니다.');
+        }
+    }
+
+    function requestResync() {
+        log('info', '서버에 최신 문서 동기화를 요청했습니다.');
+        sendCollaborationMessage({ type: 'resync-request', timestamp: Date.now() });
+    }
+
+    function shareCollaborationLink() {
+        const sessionId = collaborationState.localUser?.id || 'collamind-session';
+        let origin = '';
+        try {
+            origin = window.location.origin || '';
+        } catch (error) {
+            origin = '';
+        }
+        if (!origin || origin === 'null') {
+            origin = '';
+        }
+        const basePath = window.location.pathname || '';
+        const url = `${origin}${basePath}#session=${sessionId}`;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(url).then(() => {
+                log('info', '협업 링크가 클립보드에 복사되었습니다.');
+            }).catch(() => {
+                log('warn', `클립보드 접근이 제한되어 링크를 복사하지 못했습니다. 링크: ${url}`);
+            });
+        } else {
+            log('info', `협업 링크: ${url}`);
+        }
+    }
+
+    function broadcastOperation(kind, payload) {
+        if (collaborationState.suppressBroadcast) return;
+        const version = ++collaborationState.documentVersion;
+        const message = {
+            type: 'operation',
+            kind,
+            payload,
+            version,
+            timestamp: Date.now(),
+            actor: collaborationState.localUser
+        };
+        sendCollaborationMessage(message);
+        const description = formatOperationMessage(kind, payload);
+        recordActivity('local', description, { version });
+        collaborationState.lastUpdate = message.timestamp;
+        updateCollaborationMetadata(message);
+    }
+
+    function serializeNodeForCollaboration(node) {
+        if (!node) return null;
+        return {
+            id: node.id,
+            text: node.text,
+            x: node.x,
+            y: node.y,
+            parentId: node.parentId,
+            isRoot: node.isRoot,
+            style: { ...node.style }
+        };
+    }
+
     // 초기화
     function init() {
         ui.canvas = canvas;
@@ -154,6 +801,8 @@
         render();
         updateMinimap();
         updateUI();
+
+        initCollaboration();
 
         log('info', '마인드맵 에디터가 완전히 초기화되었습니다.');
     }
@@ -247,13 +896,93 @@
         });
     }
 
+    function startSelection(pointer, additive) {
+        selectionState.isSelecting = true;
+        selectionState.start = pointer;
+        selectionState.additive = additive;
+        if (!additive) {
+            clearSelection();
+        }
+
+        const box = document.createElement('div');
+        box.className = 'selection-box';
+        box.style.left = `${pointer.x}px`;
+        box.style.top = `${pointer.y}px`;
+        box.style.width = '0px';
+        box.style.height = '0px';
+        selectionState.boxElement = box;
+        canvas.parentElement.appendChild(box);
+
+        document.addEventListener('mousemove', onSelectionMouseMove);
+        document.addEventListener('mouseup', onSelectionMouseUp);
+    }
+
+    function updateSelectionBoxVisual(pointer) {
+        if (!selectionState.boxElement || !selectionState.start) return;
+        const x = Math.min(selectionState.start.x, pointer.x);
+        const y = Math.min(selectionState.start.y, pointer.y);
+        const width = Math.abs(selectionState.start.x - pointer.x);
+        const height = Math.abs(selectionState.start.y - pointer.y);
+        Object.assign(selectionState.boxElement.style, {
+            left: `${x}px`,
+            top: `${y}px`,
+            width: `${width}px`,
+            height: `${height}px`
+        });
+    }
+
+    function finishSelection() {
+        if (selectionState.boxElement) {
+            selectionState.boxElement.remove();
+        }
+        selectionState.isSelecting = false;
+        selectionState.start = null;
+        selectionState.boxElement = null;
+        selectionState.additive = false;
+        document.removeEventListener('mousemove', onSelectionMouseMove);
+        document.removeEventListener('mouseup', onSelectionMouseUp);
+    }
+
+    function onSelectionMouseMove(e) {
+        if (!selectionState.isSelecting) return;
+        const rect = canvas.getBoundingClientRect();
+        updateSelectionBoxVisual({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+    }
+
+    function onSelectionMouseUp() {
+        if (!selectionState.isSelecting) return;
+        if (selectionState.boxElement) {
+            const boxRect = selectionState.boxElement.getBoundingClientRect();
+            document.querySelectorAll('.mind-node').forEach(nodeEl => {
+                const nodeRect = nodeEl.getBoundingClientRect();
+                const intersects = !(nodeRect.right < boxRect.left ||
+                                      nodeRect.left > boxRect.right ||
+                                      nodeRect.bottom < boxRect.top ||
+                                      nodeRect.top > boxRect.bottom);
+                if (intersects) {
+                    selectNode(nodeEl.dataset.id);
+                }
+            });
+        }
+        finishSelection();
+    }
+
     // 캔버스 마우스 다운
     function onCanvasMouseDown(e) {
         const rect = canvas.getBoundingClientRect();
-        ui.lastMousePos = {
+        const pointer = {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
         };
+        ui.lastMousePos = pointer;
+
+        if (e.button === 0 && (e.ctrlKey || e.metaKey)) {
+            startSelection(pointer, e.shiftKey);
+            return;
+        }
 
         if (mindmapState.currentMode === 'pan' || e.button === 1) { // 중간 마우스 버튼
             ui.isDragging = true;
@@ -268,6 +997,11 @@
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
         };
+
+        if (selectionState.isSelecting) {
+            updateSelectionBoxVisual(currentPos);
+            return;
+        }
 
         if (ui.isDragging && (mindmapState.currentMode === 'pan' || e.buttons === 4)) {
             const deltaX = currentPos.x - ui.lastMousePos.x;
@@ -321,7 +1055,7 @@
         }
 
         // 선택 처리
-        if (!e.ctrlKey && !e.shiftKey) {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
             clearSelection();
         }
         selectNode(nodeId);
@@ -329,6 +1063,14 @@
         // 드래그 시작
         ui.isDragging = true;
         ui.dragStartNode = nodeId;
+        ui.dragInitialPositions = new Map();
+        mindmapState.selectedNodes.forEach(selectedId => {
+            const selectedNode = mindmapState.nodes.get(selectedId);
+            if (selectedNode) {
+                ui.dragInitialPositions.set(selectedId, { x: selectedNode.x, y: selectedNode.y });
+            }
+        });
+        ui.dragHasMoved = false;
 
         const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
         const pointerScreen = {
@@ -405,11 +1147,26 @@
                     node.element.style.willChange = 'auto';
                 }
             });
+
+            if (ui.dragHasMoved && ui.dragInitialPositions.size > 0) {
+                const movedNodes = [];
+                ui.dragInitialPositions.forEach((startPos, nodeId) => {
+                    const node = mindmapState.nodes.get(nodeId);
+                    if (node && (startPos.x !== node.x || startPos.y !== node.y)) {
+                        movedNodes.push({ id: nodeId, x: node.x, y: node.y });
+                    }
+                });
+                if (movedNodes.length > 0) {
+                    broadcastOperation('node-move', { nodes: movedNodes });
+                }
+            }
         }
 
         ui.isDragging = false;
         ui.dragStartNode = null;
         ui.dragStartPos = null;
+        ui.dragHasMoved = false;
+        ui.dragInitialPositions.clear();
         document.removeEventListener('mousemove', onGlobalMouseMove);
         document.removeEventListener('mouseup', onGlobalMouseUp);
     }
@@ -765,6 +1522,14 @@
             });
         });
 
+        // 협업 컨트롤 버튼
+        document.querySelectorAll('.collab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.dataset.action;
+                executeAction(action);
+            });
+        });
+
         // 탭 및 닫기 버튼 이벤트 위임
         const tabsContainer = document.querySelector('.editor-tabs');
         if (tabsContainer) {
@@ -825,6 +1590,9 @@
             case 'refresh': refreshProject(); break;
             case 'collapse': collapseProjectTree(); break;
             case 'clear': clearConsole(); break;
+            case 'share': shareCollaborationLink(); break;
+            case 'resync': requestResync(); break;
+            case 'toggle-offline': toggleOfflineMode(); break;
             case 'closetab': /* 탭별로 처리됨 */; break;
 
             default:
@@ -859,12 +1627,16 @@
     function deleteSelectedNodes() {
         if (mindmapState.selectedNodes.size === 0) return;
 
+        const deletedNodeIds = [];
+        const deletedConnectionIds = [];
+
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node && !node.isRoot) { // 루트 노드는 삭제 불가
                 // 연결 삭제
                 mindmapState.connections.forEach((conn, connId) => {
                     if (conn.from === nodeId || conn.to === nodeId) {
+                        deletedConnectionIds.push(connId);
                         mindmapState.connections.delete(connId);
                     }
                 });
@@ -876,6 +1648,7 @@
 
                 // 상태에서 제거
                 mindmapState.nodes.delete(nodeId);
+                deletedNodeIds.push(nodeId);
             }
         });
 
@@ -884,7 +1657,10 @@
         updateMinimap();
         updateUI();
         setDirty(true);
-        log('info', `${mindmapState.selectedNodes.size}개 노드가 삭제되었습니다.`);
+        if (deletedNodeIds.length > 0) {
+            log('info', `${deletedNodeIds.length}개 노드가 삭제되었습니다.`);
+            broadcastOperation('node-delete', { nodeIds: deletedNodeIds, connectionIds: deletedConnectionIds });
+        }
     }
 
     function addNode() {
@@ -938,9 +1714,17 @@
         log('info', '형제 노드가 추가되었습니다.');
     }
 
-    function createNode(text, x, y, parentId = null) {
-        const nodeId = mindmapState.nodeIdCounter.toString();
-        mindmapState.nodeIdCounter++;
+    function createNode(text, x, y, parentId = null, options = {}) {
+        const providedId = options.id ? options.id.toString() : null;
+        const nodeId = providedId || mindmapState.nodeIdCounter.toString();
+        if (!providedId) {
+            mindmapState.nodeIdCounter++;
+        } else {
+            const numericId = parseInt(nodeId, 10);
+            if (!Number.isNaN(numericId)) {
+                mindmapState.nodeIdCounter = Math.max(mindmapState.nodeIdCounter, numericId + 1);
+            }
+        }
 
         // DOM 요소 생성
         const nodeElement = document.createElement('div');
@@ -952,6 +1736,10 @@
         }
         nodeElement.textContent = text;
 
+        if (options.isRoot) {
+            nodeElement.classList.add('root');
+        }
+
         // 컨테이너에 추가
         document.querySelector('.canvas-container').appendChild(nodeElement);
 
@@ -960,6 +1748,20 @@
         nodeElement.addEventListener('dblclick', onNodeDoubleClick);
 
         // 상태에 추가
+        const nodeStyle = {
+            backgroundColor: options.style?.backgroundColor || (options.isRoot ? '#0e7db8' : '#505050'),
+            color: options.style?.color || '#ffffff',
+            borderColor: options.style?.borderColor || (options.isRoot ? '#1890d9' : '#666666'),
+            fontSize: options.style?.fontSize || 14
+        };
+
+        Object.assign(nodeElement.style, {
+            backgroundColor: nodeStyle.backgroundColor,
+            color: nodeStyle.color,
+            borderColor: nodeStyle.borderColor,
+            fontSize: `${nodeStyle.fontSize}px`
+        });
+
         const node = {
             id: nodeId,
             text: text,
@@ -967,13 +1769,8 @@
             y: y,
             parentId: parentId,
             element: nodeElement,
-            isRoot: false,
-            style: {
-                backgroundColor: '#505050',
-                color: '#ffffff',
-                borderColor: '#666666',
-                fontSize: 14
-            }
+            isRoot: Boolean(options.isRoot),
+            style: nodeStyle
         };
 
         mindmapState.nodes.set(nodeId, node);
@@ -985,10 +1782,17 @@
         updateUI();
         setDirty(true);
 
+        if (!options.skipBroadcast) {
+            broadcastOperation('node-create', { node: serializeNodeForCollaboration(node) });
+        }
+
         return nodeId;
     }
 
     function moveSelectedNodes(deltaX, deltaY) {
+        if (Math.abs(deltaX) > 0.01 || Math.abs(deltaY) > 0.01) {
+            ui.dragHasMoved = true;
+        }
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
@@ -1041,6 +1845,7 @@
             node.element.classList.remove('editing');
             setDirty(true);
             log('info', `노드 텍스트가 변경되었습니다: "${newText}"`);
+            broadcastOperation('node-update', { nodeIds: [nodeId], changes: { text: newText } });
         };
 
         input.addEventListener('blur', finishEdit);
@@ -1071,6 +1876,7 @@
         updateUI();
         setDirty(true);
         log('info', `노드 ${fromId}과 ${toId} 사이에 연결이 생성되었습니다.`);
+        broadcastOperation('connection-create', { id: connectionId, from: fromId, to: toId });
     }
 
     // === 렌더링 함수들 ===
@@ -1214,76 +2020,112 @@
 
     function updateNodeText() {
         const newText = this.value;
+        const updatedIds = [];
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.text = newText;
-                if (node.element) {
-                    node.element.textContent = newText;
+                if (node.text !== newText) {
+                    node.text = newText;
+                    if (node.element) {
+                        node.element.textContent = newText;
+                    }
+                    updatedIds.push(nodeId);
                 }
             }
         });
         setDirty(true);
+        if (updatedIds.length > 0) {
+            broadcastOperation('node-update', { nodeIds: updatedIds, changes: { text: newText } });
+        }
     }
 
     function updateNodeBackgroundColor() {
         const color = this.value;
+        const updatedIds = [];
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.backgroundColor = color;
-                if (node.element) {
-                    node.element.style.backgroundColor = color;
+                if (node.style.backgroundColor !== color) {
+                    node.style.backgroundColor = color;
+                    if (node.element) {
+                        node.element.style.backgroundColor = color;
+                    }
+                    updatedIds.push(nodeId);
                 }
             }
         });
         setDirty(true);
+        if (updatedIds.length > 0) {
+            broadcastOperation('node-style', { nodeIds: updatedIds, changes: { backgroundColor: color } });
+        }
     }
 
     function updateNodeColor() {
         const color = this.value;
+        const updatedIds = [];
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.color = color;
-                if (node.element) {
-                    node.element.style.color = color;
+                if (node.style.color !== color) {
+                    node.style.color = color;
+                    if (node.element) {
+                        node.element.style.color = color;
+                    }
+                    updatedIds.push(nodeId);
                 }
             }
         });
         setDirty(true);
+        if (updatedIds.length > 0) {
+            broadcastOperation('node-style', { nodeIds: updatedIds, changes: { color } });
+        }
     }
 
     function updateNodeFontSize() {
         const fontSize = parseInt(this.value);
+        const updatedIds = [];
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.fontSize = fontSize;
-                if (node.element) {
-                    node.element.style.fontSize = fontSize + 'px';
+                if (node.style.fontSize !== fontSize) {
+                    node.style.fontSize = fontSize;
+                    if (node.element) {
+                        node.element.style.fontSize = fontSize + 'px';
+                    }
+                    updatedIds.push(nodeId);
                 }
             }
         });
         setDirty(true);
+        if (updatedIds.length > 0) {
+            broadcastOperation('node-style', { nodeIds: updatedIds, changes: { fontSize } });
+        }
     }
 
     function updateNodeBorderColor() {
         const color = this.value;
+        const updatedIds = [];
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.borderColor = color;
-                if (node.element) {
-                    node.element.style.borderColor = color;
+                if (node.style.borderColor !== color) {
+                    node.style.borderColor = color;
+                    if (node.element) {
+                        node.element.style.borderColor = color;
+                    }
+                    updatedIds.push(nodeId);
                 }
             }
         });
         setDirty(true);
+        if (updatedIds.length > 0) {
+            broadcastOperation('node-style', { nodeIds: updatedIds, changes: { borderColor: color } });
+        }
     }
 
     function updateNodeX() {
         const newX = parseInt(this.value);
+        let targetId = null;
         if (mindmapState.selectedNodes.size === 1) {
             const nodeId = [...mindmapState.selectedNodes][0];
             const node = mindmapState.nodes.get(nodeId);
@@ -1292,13 +2134,18 @@
                 applyNodePosition(node);
                 render();
                 updateMinimap();
+                targetId = nodeId;
             }
         }
         setDirty(true);
+        if (targetId) {
+            broadcastOperation('node-update', { nodeIds: [targetId], changes: { x: newX } });
+        }
     }
 
     function updateNodeY() {
         const newY = parseInt(this.value);
+        let targetId = null;
         if (mindmapState.selectedNodes.size === 1) {
             const nodeId = [...mindmapState.selectedNodes][0];
             const node = mindmapState.nodes.get(nodeId);
@@ -1307,9 +2154,13 @@
                 applyNodePosition(node);
                 render();
                 updateMinimap();
+                targetId = nodeId;
             }
         }
         setDirty(true);
+        if (targetId) {
+            broadcastOperation('node-update', { nodeIds: [targetId], changes: { y: newY } });
+        }
     }
 
     // === 문서 관리 함수들 ===
@@ -1584,20 +2435,11 @@
             const screenX = 100 + index * 20;
             const screenY = 100 + index * 20;
             const { x, y } = screenToWorld(screenX, screenY);
-            const nodeId = createNode(clipNode.text, x, y);
+            const nodeId = createNode(clipNode.text, x, y, null, { style: clipNode.style });
 
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style = {...clipNode.style};
                 node.isRoot = false; // 붙여넣은 노드는 루트가 될 수 없음
-
-                // 스타일 적용
-                if (node.element) {
-                    node.element.style.backgroundColor = node.style.backgroundColor;
-                    node.element.style.color = node.style.color;
-                    node.element.style.borderColor = node.style.borderColor;
-                    node.element.style.fontSize = node.style.fontSize + 'px';
-                }
 
                 selectNode(nodeId);
             }
@@ -1654,6 +2496,10 @@
         logEntry.innerHTML = `[${level.toUpperCase()}] ${timestamp} - ${message}`;
         consoleOutput.appendChild(logEntry);
         consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        if (level !== 'debug') {
+            const source = level === 'warn' || level === 'error' ? 'alert' : 'system';
+            recordActivity(source, message, { level });
+        }
     }
 
     function clearConsole() {
@@ -1835,90 +2681,4 @@
         init();
     }
 
-    let selectionBox = null;
-    let selectionStart = null;
-    let isSelecting = false;
-
-
-    function onCanvasMouseDown(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-
-    // Ctrl 키 누른 상태에서 왼쪽 버튼 드래그 → 멀티 선택 박스
-    if (e.button === 0 && e.ctrlKey) {
-    isSelecting = true;
-    selectionStart = { x, y };
-
-
-    selectionBox = document.createElement('div');
-    selectionBox.className = 'selection-box';
-    selectionBox.style.left = x + 'px';
-    selectionBox.style.top = y + 'px';
-    selectionBox.style.width = '0px';
-    selectionBox.style.height = '0px';
-    canvas.parentElement.appendChild(selectionBox);
-
-
-    document.addEventListener('mousemove', onSelectionMouseMove);
-    document.addEventListener('mouseup', onSelectionMouseUp);
-    return;
-    }
-
-
-    // === 기존 Pan/노드 선택 로직 ===
-    if (mindmapState.currentMode === 'pan' || e.button === 1) {
-    ui.isDragging = true;
-    canvas.style.cursor = 'grabbing';
-    }
-    }
-
-
-    function onSelectionMouseMove(e) {
-    if (!isSelecting || !selectionStart) return;
-
-
-    const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
-
-
-    const x = Math.min(selectionStart.x, currentX);
-    const y = Math.min(selectionStart.y, currentY);
-    const w = Math.abs(selectionStart.x - currentX);
-    const h = Math.abs(selectionStart.y - currentY);
-
-
-    selectionBox.style.left = x + 'px';
-    selectionBox.style.top = y + 'px';
-    selectionBox.style.width = w + 'px';
-    selectionBox.style.height = h + 'px';
-    }
-
-
-    function onSelectionMouseUp(e) {
-    if (!isSelecting) return;
-
-
-    const boxRect = selectionBox.getBoundingClientRect();
-    document.querySelectorAll('.mind-node').forEach(nodeEl => {
-    const nodeRect = nodeEl.getBoundingClientRect();
-    if (!(nodeRect.right < boxRect.left || nodeRect.left > boxRect.right ||
-    nodeRect.bottom < boxRect.top || nodeRect.top > boxRect.bottom)) {
-    const nodeId = nodeEl.dataset.id;
-    selectNode(nodeId);
-    }
-    });
-
-
-    selectionBox.remove();
-    selectionBox = null;
-    selectionStart = null;
-    isSelecting = false;
-
-
-    document.removeEventListener('mousemove', onSelectionMouseMove);
-    document.removeEventListener('mouseup', onSelectionMouseUp);
-    }
 })();
