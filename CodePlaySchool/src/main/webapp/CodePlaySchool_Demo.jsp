@@ -118,12 +118,15 @@
         .block-item:last-child::after { display: none; }
         .workspace-area { min-height: 16rem; border-radius: 1.5rem; background: #e7f3ff;
                            box-shadow: inset 0 0 0 2px rgba(9,111,255,0.2), 0 25px 45px rgba(15,73,150,0.18);
-                           position: relative; overflow: hidden; }
+                           position: relative; overflow: hidden; transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .workspace-area.drag-hover { box-shadow: inset 0 0 0 2px rgba(9,111,255,0.28), 0 28px 52px rgba(15,73,150,0.22);
+                                     transform: translateY(-2px); }
         .workspace-grid { background-image: linear-gradient(0deg, rgba(9,111,255,0.08) 1px, transparent 1px),
                                            linear-gradient(90deg, rgba(9,111,255,0.08) 1px, transparent 1px);
                            background-size: 32px 32px; }
         .workspace-overlay { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at top left, rgba(255,255,255,0.5) 0%, transparent 55%); opacity: 0.4; transition: opacity 0.2s ease; }
         .workspace-filled .workspace-overlay { opacity: 0.15; }
+        .workspace-area.drag-hover .workspace-overlay { opacity: 0.2; }
         .workspace-empty-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
                                 flex-direction: column; gap: 0.5rem; color: #1b365d; font-weight: 600; font-size: 0.95rem; }
         .workspace-toolbar { background: linear-gradient(90deg, rgba(255,255,255,0.92) 0%, rgba(233,244,255,0.92) 100%);
@@ -132,7 +135,11 @@
         .workspace-toolbar .btn { border-radius: 0.9rem; font-weight: 600; }
         .block-workspace-item { position: absolute; padding: 0.75rem 1.1rem; border-radius: 1.25rem; color: #0b1f33;
                                  font-weight: 700; cursor: grab; box-shadow: 0 18px 26px rgba(16,80,160,0.18);
-                                 min-width: 12rem; text-align: left; }
+                                 min-width: 12rem; text-align: left; transition: box-shadow 0.2s ease, transform 0.2s ease;
+                                 will-change: left, top; }
+        .block-workspace-item.dragging { opacity: 0.85; box-shadow: 0 22px 32px rgba(16,80,160,0.24); transform: scale(1.02);
+                                         cursor: grabbing; z-index: 5; }
+        .block-workspace-item.snapped { transition: left 0.18s ease, top 0.18s ease; }
         .block-workspace-item .block-input { background: rgba(255,255,255,0.85); }
         .block-workspace-item button { position: absolute; top: 0.35rem; right: 0.4rem; background: transparent;
                                        border: none; color: rgba(11,31,51,0.55); cursor: pointer; }
@@ -1024,7 +1031,7 @@ function renderStudentPuzzle() {
            '<button onclick="runCode()" class="btn btn-primary">'+
            '<i data-lucide="play" class="h-4 w-4"></i>실행</button>'+
            '</div></div>'+
-           '<div id="blockWorkspace" class="workspace-area workspace-grid" style="height:24rem;" ondrop="drop(event)" ondragover="allowDrop(event)">'+
+           '<div id="blockWorkspace" class="workspace-area workspace-grid" style="height:24rem;" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="workspaceDragEnter(event)" ondragleave="workspaceDragLeave(event)">'+
            '<div class="workspace-overlay"></div>'+
            '<div id="workspaceHint" class="workspace-empty-hint hidden">'+
            '<div class="text-3xl">🎯</div>'+
@@ -1405,77 +1412,269 @@ function initBlockly() {
     if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
 
     renderWorkspaceBlocks();
-    lucide.createIcons();
-    updateBlockCount();
 }
 
 var draggedBlock = null;
-var dragOffset = { x: 0, y: 0 };
+var SNAP_GRID = 24;
+var SNAP_THRESHOLD = 28;
+var SNAP_GAP = 16;
 
 function dragStart(e) {
+    var target = e.currentTarget || e.target;
+    var blockType = target && target.dataset ? target.dataset.block : null;
+    if (!blockType) return;
+
     draggedBlock = {
-        type: e.target.dataset.block
+        type: blockType
     };
-    
+
     // 드래그 이미지 설정
-    var dragImage = e.target.cloneNode(true);
+    var dragImage = target.cloneNode(true);
     dragImage.style.opacity = '0.7';
     document.body.appendChild(dragImage);
     e.dataTransfer.setDragImage(dragImage, 0, 0);
     setTimeout(function() {
         document.body.removeChild(dragImage);
     }, 0);
+
+    var handleDragEnd = function() {
+        toggleWorkspaceHover(false);
+        draggedBlock = null;
+        target.removeEventListener('dragend', handleDragEnd);
+    };
+    target.addEventListener('dragend', handleDragEnd);
 }
 
 function allowDrop(e) {
     e.preventDefault();
+    toggleWorkspaceHover(true);
+}
+
+function workspaceDragEnter(e) {
+    allowDrop(e);
+}
+
+function workspaceDragLeave(e) {
+    if (e && e.currentTarget && e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) {
+        return;
+    }
+    toggleWorkspaceHover(false);
+}
+
+function toggleWorkspaceHover(active) {
+    var workspace = document.getElementById('blockWorkspace');
+    if (!workspace) return;
+    if (active) workspace.classList.add('drag-hover');
+    else workspace.classList.remove('drag-hover');
+}
+
+function createWorkspaceBlockElement(block) {
+    var blockElement = document.createElement('div');
+    blockElement.id = block.id;
+    blockElement.className = 'block-workspace-item ' + getBlockClass(block.type);
+    blockElement.dataset.blockType = block.type;
+    blockElement.style.left = (block.x || 0) + 'px';
+    blockElement.style.top = (block.y || 0) + 'px';
+    blockElement.setAttribute('draggable', 'true');
+
+    var markup = block.content || getBlockMarkup(block.type);
+    blockElement.innerHTML = '<div class="flex items-center justify-between gap-2">'+
+                             '<div class="flex-1">'+ markup +'</div>'+
+                             '<button type="button" class="workspace-remove" aria-label="블록 삭제">'+
+                             '<i data-lucide="x" class="h-4 w-4"></i>'+
+                             '</button>'+
+                             '</div>';
+
+    blockElement.addEventListener('dragstart', function(event) { moveBlockStart(event, block.id); });
+    blockElement.addEventListener('drag', function(event) { moveBlock(event, block.id); });
+    blockElement.addEventListener('dragend', function(event) { moveBlockEnd(event, block.id); });
+
+    var removeButton = blockElement.querySelector('.workspace-remove');
+    if (removeButton) {
+        removeButton.addEventListener('click', function() { removeBlock(block.id); });
+    }
+
+    return blockElement;
+}
+
+function getWorkspaceBlockRecord(blockId) {
+    if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
+    for (var i = 0; i < AppState.workspaceBlocks.length; i++) {
+        if (AppState.workspaceBlocks[i].id === blockId) return AppState.workspaceBlocks[i];
+    }
+    return null;
+}
+
+function updateWorkspaceState(blockId, payload) {
+    if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
+    var record = getWorkspaceBlockRecord(blockId);
+    if (record) {
+        for (var key in payload) {
+            if (Object.prototype.hasOwnProperty.call(payload, key)) {
+                record[key] = payload[key];
+            }
+        }
+    }
+}
+
+function snapBlockPosition(blockElement) {
+    if (!blockElement) return;
+    var workspace = document.getElementById('blockWorkspace');
+    if (!workspace) return;
+
+    var left = parseInt(blockElement.style.left) || 0;
+    var top = parseInt(blockElement.style.top) || 0;
+    var width = blockElement.offsetWidth;
+    var height = blockElement.offsetHeight;
+    var workspaceWidth = workspace.clientWidth;
+    var workspaceHeight = workspace.clientHeight;
+
+    left = Math.round(left / SNAP_GRID) * SNAP_GRID;
+    top = Math.round(top / SNAP_GRID) * SNAP_GRID;
+
+    var blocks = Array.prototype.slice.call(workspace.querySelectorAll('.block-workspace-item')).filter(function(node) {
+        return node.id !== blockElement.id;
+    });
+
+    blocks.forEach(function(other) {
+        var otherLeft = parseInt(other.style.left) || 0;
+        var otherTop = parseInt(other.style.top) || 0;
+        var otherWidth = other.offsetWidth;
+        var otherHeight = other.offsetHeight;
+
+        var alignedVertically = Math.abs(otherLeft - left) <= SNAP_THRESHOLD;
+        var alignedHorizontally = Math.abs(otherTop - top) <= SNAP_THRESHOLD;
+
+        if (alignedVertically) {
+            var snapBelow = otherTop + otherHeight + SNAP_GAP;
+            var snapAbove = otherTop - height - SNAP_GAP;
+            if (Math.abs(snapBelow - top) <= SNAP_THRESHOLD) {
+                top = snapBelow;
+                left = otherLeft;
+            } else if (Math.abs(snapAbove - top) <= SNAP_THRESHOLD) {
+                top = snapAbove;
+                left = otherLeft;
+            }
+        }
+
+        if (alignedHorizontally) {
+            var snapRight = otherLeft + otherWidth + SNAP_GAP;
+            var snapLeft = otherLeft - width - SNAP_GAP;
+            if (Math.abs(snapRight - left) <= SNAP_THRESHOLD) {
+                left = snapRight;
+                top = otherTop;
+            } else if (Math.abs(snapLeft - left) <= SNAP_THRESHOLD) {
+                left = snapLeft;
+                top = otherTop;
+            }
+        }
+    });
+
+    left = Math.round(left / SNAP_GRID) * SNAP_GRID;
+    top = Math.round(top / SNAP_GRID) * SNAP_GRID;
+
+    var iterations = 0;
+    var adjusted = true;
+    while (adjusted && iterations < 50) {
+        adjusted = false;
+        blocks.forEach(function(other) {
+            var otherLeft = parseInt(other.style.left) || 0;
+            var otherTop = parseInt(other.style.top) || 0;
+            var otherWidth = other.offsetWidth;
+            var otherHeight = other.offsetHeight;
+
+            var overlapX = left < otherLeft + otherWidth && left + width > otherLeft;
+            var overlapY = top < otherTop + otherHeight && top + height > otherTop;
+
+            if (overlapX && overlapY) {
+                adjusted = true;
+                var below = otherTop + otherHeight + SNAP_GAP;
+                var above = otherTop - height - SNAP_GAP;
+                var right = otherLeft + otherWidth + SNAP_GAP;
+                var leftSide = otherLeft - width - SNAP_GAP;
+
+                if (below + height <= workspaceHeight) {
+                    left = otherLeft;
+                    top = below;
+                } else if (above >= 0) {
+                    left = otherLeft;
+                    top = above;
+                } else if (right + width <= workspaceWidth) {
+                    left = right;
+                    top = otherTop;
+                } else if (leftSide >= 0) {
+                    left = leftSide;
+                    top = otherTop;
+                } else {
+                    left = Math.max(0, Math.min(left + SNAP_GRID, workspaceWidth - width));
+                    top = Math.max(0, Math.min(top + SNAP_GRID, workspaceHeight - height));
+                }
+            }
+        });
+        iterations++;
+    }
+
+    var maxLeft = Math.max(0, workspaceWidth - width);
+    var maxTop = Math.max(0, workspaceHeight - height);
+
+    left = Math.min(Math.max(0, left), maxLeft);
+    top = Math.min(Math.max(0, top), maxTop);
+
+    blockElement.classList.add('snapped');
+    blockElement.style.left = left + 'px';
+    blockElement.style.top = top + 'px';
+
+    setTimeout(function() {
+        blockElement.classList.remove('snapped');
+    }, 200);
+
+    updateWorkspaceState(blockElement.id, {
+        x: left,
+        y: top,
+        width: width,
+        height: height
+    });
 }
 
 function drop(e) {
     e.preventDefault();
-    
+
     if (!draggedBlock) return;
-    
+
     var workspace = document.getElementById('blockWorkspace');
+    if (!workspace) return;
+
     var rect = workspace.getBoundingClientRect();
     var x = e.clientX - rect.left;
     var y = e.clientY - rect.top;
-    
-    // 블록 ID 생성
+
     var blockId = 'block_' + Date.now();
-    
-    // 블록 HTML 생성
     var blockContent = getBlockMarkup(draggedBlock.type);
 
-    var blockHtml = '<div id="'+blockId+'" class="block-workspace-item '+getBlockClass(draggedBlock.type)+'" '+
-                   'style="left:'+x+'px;top:'+y+'px;" '+
-                   'draggable="true" ondragstart="moveBlockStart(event,\''+blockId+'\')" '+
-                   'ondrag="moveBlock(event,\''+blockId+'\')" ondragend="moveBlockEnd(event,\''+blockId+'\')">'+
-                   '<div class="flex items-center justify-between gap-2">'+
-                   '<div class="flex-1">'+blockContent+'</div>'+
-                   '<button type="button" onclick="removeBlock(\''+blockId+'\')" class="workspace-remove" '+
-                   'style="background:none;border:none;padding:0;cursor:pointer;">'+
-                   '<i data-lucide="x" class="h-4 w-4"></i>'+
-                   '</button>'+
-                   '</div>'+
-                   '</div>';
-    
-    workspace.insertAdjacentHTML('beforeend', blockHtml);
-    
-    // 블록 추가 기록
     if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
-    AppState.workspaceBlocks.push({
+
+    var blockData = {
         id: blockId,
         type: draggedBlock.type,
         x: x,
         y: y,
         content: blockContent
-    });
-    
+    };
+
+    AppState.workspaceBlocks.push(blockData);
+
+    var blockElement = createWorkspaceBlockElement(blockData);
+    workspace.appendChild(blockElement);
     lucide.createIcons();
-    updateBlockCount();
+
+    requestAnimationFrame(function() {
+        snapBlockPosition(blockElement);
+        updateBlockCount();
+    });
+
     draggedBlock = null;
-    
+    toggleWorkspaceHover(false);
+
     showToast('블록이 추가되었습니다', 'success');
 }
 
@@ -1521,23 +1720,25 @@ var moveStartPos = { x: 0, y: 0 };
 function moveBlockStart(e, blockId) {
     movingBlock = document.getElementById(blockId);
     if (!movingBlock) return;
-    
+
     var rect = movingBlock.getBoundingClientRect();
     var workspace = document.getElementById('blockWorkspace');
     var workspaceRect = workspace.getBoundingClientRect();
-    
+
     moveStartPos = {
         x: e.clientX - (rect.left - workspaceRect.left),
         y: e.clientY - (rect.top - workspaceRect.top)
     };
-    
+
     movingBlock.classList.add('dragging');
+    toggleWorkspaceHover(true);
 }
 
 function moveBlock(e, blockId) {
     if (!movingBlock) return;
     e.preventDefault();
-    
+    toggleWorkspaceHover(true);
+
     var workspace = document.getElementById('blockWorkspace');
     var rect = workspace.getBoundingClientRect();
     
@@ -1555,19 +1756,11 @@ function moveBlock(e, blockId) {
 function moveBlockEnd(e, blockId) {
     if (movingBlock) {
         movingBlock.classList.remove('dragging');
-        
-        // 위치 업데이트
-        if (AppState.workspaceBlocks) {
-            for (var i = 0; i < AppState.workspaceBlocks.length; i++) {
-                if (AppState.workspaceBlocks[i].id === blockId) {
-                    AppState.workspaceBlocks[i].x = parseInt(movingBlock.style.left);
-                    AppState.workspaceBlocks[i].y = parseInt(movingBlock.style.top);
-                    break;
-                }
-            }
-        }
+        snapBlockPosition(movingBlock);
+        updateBlockCount();
     }
     movingBlock = null;
+    toggleWorkspaceHover(false);
 }
 
 function removeBlock(blockId) {
@@ -1631,29 +1824,27 @@ function renderWorkspaceBlocks() {
 
     if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
 
+    var fragment = document.createDocumentFragment();
+
     AppState.workspaceBlocks.forEach(function(block, index) {
         var blockId = block.id || ('block_'+Date.now()+'_'+index);
         block.id = blockId;
-        var markup = block.content || getBlockMarkup(block.type);
-        var x = typeof block.x === 'number' ? block.x : 32 * (index % 4);
-        var y = typeof block.y === 'number' ? block.y : 48 * Math.floor(index / 4);
-        block.x = x;
-        block.y = y;
+        block.content = block.content || getBlockMarkup(block.type);
+        block.x = typeof block.x === 'number' ? block.x : 32 * (index % 4);
+        block.y = typeof block.y === 'number' ? block.y : 48 * Math.floor(index / 4);
 
-        var blockHtml = '<div id="'+blockId+'" class="block-workspace-item '+getBlockClass(block.type)+'" '+
-                        'style="left:'+x+'px;top:'+y+'px;" '+
-                        'draggable="true" ondragstart="moveBlockStart(event,\''+blockId+'\')" '+
-                        'ondrag="moveBlock(event,\''+blockId+'\')" ondragend="moveBlockEnd(event,\''+blockId+'\')">'+
-                        '<div class="flex items-center justify-between gap-2">'+
-                        '<div class="flex-1">'+markup+'</div>'+
-                        '<button type="button" onclick="removeBlock(\''+blockId+'\')" class="workspace-remove" '+
-                        'style="background:none;border:none;padding:0;cursor:pointer;">'+
-                        '<i data-lucide="x" class="h-4 w-4"></i>'+
-                        '</button>'+
-                        '</div>'+
-                        '</div>';
+        var element = createWorkspaceBlockElement(block);
+        fragment.appendChild(element);
+    });
 
-        workspace.insertAdjacentHTML('beforeend', blockHtml);
+    workspace.appendChild(fragment);
+    lucide.createIcons();
+
+    requestAnimationFrame(function() {
+        workspace.querySelectorAll('.block-workspace-item').forEach(function(node) {
+            snapBlockPosition(node);
+        });
+        updateBlockCount();
     });
 }
 
