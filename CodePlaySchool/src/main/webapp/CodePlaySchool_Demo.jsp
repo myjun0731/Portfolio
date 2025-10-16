@@ -79,19 +79,64 @@
         .section-title { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
         .section-title h3 { font-size: 1.125rem; font-weight: 600; color: #111827; }
         
-        .workspace-area { min-height: 16rem; border: 2px dashed #e5e7eb; border-radius: 0.75rem; background: white; }
-        
-        .output-console { background: #1f2937; color: #f9fafb; padding: 0.75rem 1rem; border-radius: 0.75rem; 
-                          font-family: 'Courier New', monospace; font-size: 0.875rem; min-height: 3rem; 
+        .output-console { background: #1f2937; color: #f9fafb; padding: 0.75rem 1rem; border-radius: 0.75rem;
+                          font-family: 'Courier New', monospace; font-size: 0.875rem; min-height: 3rem;
                           display: flex; align-items: center; justify-content: center; }
         
         .code-block { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 0.75rem; 
                       font-family: 'Courier New', monospace; font-size: 0.875rem; overflow-x: auto; line-height: 1.5; }
         
-        .block-item { padding: 0.5rem; border-radius: 0.75rem; border: 1px solid #e5e7eb; background: #f9fafb; 
-                      text-align: center; cursor: pointer; transition: all 0.15s; user-select: none; }
-        .block-item:hover { background: #f3f4f6; border-color: #d1d5db; transform: translateY(-2px); }
-        .block-item:active { transform: translateY(0); }
+        .entry-palette-card { background: linear-gradient(180deg, #0eb7ff 0%, #0aa5ff 65%, #0796ff 100%);
+                              border-radius: 1.5rem; border: none; box-shadow: 0 18px 38px rgba(10,149,255,0.22); color: white; }
+        .entry-palette-card .card-body { padding: 1.5rem; }
+        .entry-palette-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .entry-palette-header h3 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
+        .entry-search { width: 100%; border-radius: 999px; border: none; background: rgba(255,255,255,0.15);
+                        color: white; padding: 0.6rem 1rem; font-size: 0.85rem; transition: background 0.2s; }
+        .entry-search::placeholder { color: rgba(255,255,255,0.6); }
+        .entry-search:focus { outline: none; background: rgba(255,255,255,0.25); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.4); }
+        .block-palette { margin-top: 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .block-palette-category { background: rgba(255,255,255,0.12); border-radius: 1.25rem; padding: 1rem; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
+        .block-palette-title { font-size: 0.9rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .block-stack { display: flex; flex-direction: column; gap: 0.5rem; }
+        .block-item { padding: 0.65rem 0.85rem; border-radius: 1rem; color: #0b1f33; font-weight: 600;
+                      box-shadow: 0 12px 18px rgba(13,80,160,0.15); border: none; text-align: center; cursor: grab;
+                      transition: transform 0.15s ease, box-shadow 0.15s ease; position: relative; }
+        .block-item:active { cursor: grabbing; }
+        .block-item:hover { transform: translateY(-3px); box-shadow: 0 16px 26px rgba(13,80,160,0.25); }
+        .block-input { display: inline-flex; align-items: center; justify-content: center; min-width: 2.5rem; padding: 0 0.5rem;
+                       border-radius: 999px; background: rgba(255,255,255,0.75); color: #0b1f33; font-size: 0.8rem;
+                       margin: 0 0.2rem; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.08); }
+        .block-category-start { background: linear-gradient(90deg, #ffe869 0%, #ffd43a 100%); }
+        .block-category-flow { background: linear-gradient(90deg, #ffb969 0%, #ff9d39 100%); }
+        .block-category-calc { background: linear-gradient(90deg, #82f0aa 0%, #51d48d 100%); }
+        .block-category-var { background: linear-gradient(90deg, #ff9ac9 0%, #ff77a6 100%); }
+        .block-category-looks { background: linear-gradient(90deg, #9fa6ff 0%, #7b87ff 100%); }
+        .block-item::after { content: ''; position: absolute; top: 50%; right: -0.6rem; transform: translateY(-50%);
+                             width: 1rem; height: 0.75rem; border-radius: 0.5rem; background: inherit;
+                             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.08); }
+        .block-item:last-child::after { display: none; }
+        .workspace-area { min-height: 16rem; border-radius: 1.5rem; background: #e7f3ff;
+                           box-shadow: inset 0 0 0 2px rgba(9,111,255,0.2), 0 25px 45px rgba(15,73,150,0.18);
+                           position: relative; overflow: hidden; }
+        .workspace-grid { background-image: linear-gradient(0deg, rgba(9,111,255,0.08) 1px, transparent 1px),
+                                           linear-gradient(90deg, rgba(9,111,255,0.08) 1px, transparent 1px);
+                           background-size: 32px 32px; }
+        .workspace-overlay { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at top left, rgba(255,255,255,0.5) 0%, transparent 55%); opacity: 0.4; transition: opacity 0.2s ease; }
+        .workspace-filled .workspace-overlay { opacity: 0.15; }
+        .workspace-empty-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                                flex-direction: column; gap: 0.5rem; color: #1b365d; font-weight: 600; font-size: 0.95rem; }
+        .workspace-toolbar { background: linear-gradient(90deg, rgba(255,255,255,0.92) 0%, rgba(233,244,255,0.92) 100%);
+                             border-radius: 1rem; padding: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;
+                             box-shadow: 0 12px 25px rgba(9,111,255,0.18); }
+        .workspace-toolbar .btn { border-radius: 0.9rem; font-weight: 600; }
+        .block-workspace-item { position: absolute; padding: 0.75rem 1.1rem; border-radius: 1.25rem; color: #0b1f33;
+                                 font-weight: 700; cursor: grab; box-shadow: 0 18px 26px rgba(16,80,160,0.18);
+                                 min-width: 12rem; text-align: left; }
+        .block-workspace-item .block-input { background: rgba(255,255,255,0.85); }
+        .block-workspace-item button { position: absolute; top: 0.35rem; right: 0.4rem; background: transparent;
+                                       border: none; color: rgba(11,31,51,0.55); cursor: pointer; }
+        .block-workspace-item button:hover { color: rgba(11,31,51,0.85); }
         
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; 
                  background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
@@ -882,78 +927,87 @@ function renderStudentPuzzle() {
 
     return '<div class="grid grid-cols-1 gap-4 xl:grid-cols-12">'+
            '<div class="xl:col-span-3">'+
-           '<div class="card"><div class="card-body" style="max-height:calc(100vh-12rem);overflow-y:auto;">'+
-           '<div class="mb-3 flex items-center gap-2">'+
+           '<div class="card entry-palette-card"><div class="card-body" style="max-height:calc(100vh-12rem);overflow-y:auto;">'+
+           '<div class="entry-palette-header">'+
+           '<div class="flex items-center gap-2">'+
            '<i data-lucide="puzzle" class="h-5 w-5"></i>'+
-           '<h3 class="text-lg font-semibold">블록 팔레트</h3>'+
+           '<h3>블록 팔레트</h3>'+
            '</div>'+
-           '<input id="blockSearch" placeholder="블록 검색" class="input mb-3" onkeyup="searchBlocks()">'+
-           '<div id="blockPalette">'+
+           '<span class="text-xs font-semibold uppercase tracking-wide text-white/70">Entry Style</span>'+
+           '</div>'+
+           '<input id="blockSearch" placeholder="블록 검색" class="entry-search" onkeyup="searchBlocks()">'+
+           '<div id="blockPalette" class="block-palette">'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">🎬 시작</div>'+
-           '<div class="block-item block-category-start mb-2" draggable="true" ondragstart="dragStart(event)" data-block="start">'+
+           '<div class="block-stack">'+
+           '<div class="block-item block-category-start" draggable="true" ondragstart="dragStart(event)" data-block="start">'+
            '▶ 시작하기 버튼을 클릭했을 때'+
            '</div>'+
-           '<div class="block-item block-category-start mb-2" draggable="true" ondragstart="dragStart(event)" data-block="repeat-start">'+
+           '<div class="block-item block-category-start" draggable="true" ondragstart="dragStart(event)" data-block="repeat-start">'+
            '▶ 무한 반복하기'+
+           '</div>'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">🔄 흐름</div>'+
-           '<div class="block-item block-category-flow mb-2" draggable="true" ondragstart="dragStart(event)" data-block="repeat">'+
+           '<div class="block-stack">'+
+           '<div class="block-item block-category-flow" draggable="true" ondragstart="dragStart(event)" data-block="repeat">'+
            '<span class="block-input">10</span> 번 반복하기'+
            '</div>'+
-           '<div class="block-item block-category-flow mb-2" draggable="true" ondragstart="dragStart(event)" data-block="if">'+
+           '<div class="block-item block-category-flow" draggable="true" ondragstart="dragStart(event)" data-block="if">'+
            '만약 <span class="block-input">조건</span> 이라면'+
            '</div>'+
-           '<div class="block-item block-category-flow mb-2" draggable="true" ondragstart="dragStart(event)" data-block="wait">'+
+           '<div class="block-item block-category-flow" draggable="true" ondragstart="dragStart(event)" data-block="wait">'+
            '<span class="block-input">1</span> 초 기다리기'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">📐 계산</div>'+
-           '<div class="block-item block-category-calc mb-2" draggable="true" ondragstart="dragStart(event)" data-block="add">'+
+           '<div class="block-stack">'+
+           '<div class="block-item block-category-calc" draggable="true" ondragstart="dragStart(event)" data-block="add">'+
            '<span class="block-input">0</span> + <span class="block-input">0</span>'+
            '</div>'+
-           '<div class="block-item block-category-calc mb-2" draggable="true" ondragstart="dragStart(event)" data-block="compare">'+
+           '<div class="block-item block-category-calc" draggable="true" ondragstart="dragStart(event)" data-block="compare">'+
            '<span class="block-input">0</span> = <span class="block-input">0</span>'+
            '</div>'+
-           '<div class="block-item block-category-calc mb-2" draggable="true" ondragstart="dragStart(event)" data-block="random">'+
+           '<div class="block-item block-category-calc" draggable="true" ondragstart="dragStart(event)" data-block="random">'+
            '<span class="block-input">1</span> 부터 <span class="block-input">10</span> 사이의 난수'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">📦 변수</div>'+
-           '<div class="block-item block-category-var mb-2" draggable="true" ondragstart="dragStart(event)" data-block="set-var">'+
+           '<div class="block-stack">'+
+           '<div class="block-item block-category-var" draggable="true" ondragstart="dragStart(event)" data-block="set-var">'+
            '변수 <span class="block-input">이름</span> 을 <span class="block-input">0</span> (으)로 정하기'+
            '</div>'+
-           '<div class="block-item block-category-var mb-2" draggable="true" ondragstart="dragStart(event)" data-block="change-var">'+
+           '<div class="block-item block-category-var" draggable="true" ondragstart="dragStart(event)" data-block="change-var">'+
            '변수 <span class="block-input">이름</span> 을 <span class="block-input">1</span> 만큼 바꾸기'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">📺 보이기</div>'+
-           '<div class="block-item block-category-looks mb-2" draggable="true" ondragstart="dragStart(event)" data-block="print">'+
+           '<div class="block-stack">'+
+           '<div class="block-item block-category-looks" draggable="true" ondragstart="dragStart(event)" data-block="print">'+
            '<span class="block-input">안녕!</span> 출력하기'+
            '</div>'+
-           '<div class="block-item block-category-looks mb-2" draggable="true" ondragstart="dragStart(event)" data-block="console">'+
+           '<div class="block-item block-category-looks" draggable="true" ondragstart="dragStart(event)" data-block="console">'+
            '콘솔에 <span class="block-input">값</span> 출력하기'+
            '</div>'+
            '</div>'+
            '</div>'+
-           '<div class="mt-3 text-xs text-gray-500 p-3 border border-dashed rounded-xl">'+
+           '<div class="mt-4 rounded-xl bg-white/15 p-4 text-xs font-medium text-white/80 shadow-inner">'+
            '💡 블록을 드래그하여 작업 공간에 배치하세요'+
            '</div>'+
            '</div></div>'+
            '</div>'+
            '<div class="xl:col-span-6">'+
            '<div class="card"><div class="card-body">'+
-           '<div class="mb-3 flex items-center justify-between flex-wrap gap-2">'+
-           '<div class="flex items-center gap-2">'+
+           '<div class="mb-4 flex flex-wrap items-center justify-between gap-3">'+
+           '<div class="flex items-center gap-2 text-gray-700">'+
            '<i data-lucide="layers" class="h-5 w-5"></i>'+
            '<h3 class="text-lg font-semibold">작업 공간</h3>'+
            '</div>'+
-           '<div class="flex gap-2 flex-wrap">'+
+           '<div class="workspace-toolbar">'+
            '<span class="tag">목표: 25단계 이하</span>'+
            '<button onclick="toggleOptMode()" class="btn btn-secondary">'+
            '<i data-lucide="rocket" class="h-4 w-4"></i>최적화 '+(AppState.optMode?'ON':'OFF')+
@@ -963,8 +1017,12 @@ function renderStudentPuzzle() {
            '<button onclick="runCode()" class="btn btn-primary">'+
            '<i data-lucide="play" class="h-4 w-4"></i>실행</button>'+
            '</div></div>'+
-           '<div id="blockWorkspace" class="workspace-area workspace-grid" style="height:24rem;position:relative;" '+
-           'ondrop="drop(event)" ondragover="allowDrop(event)">'+
+           '<div id="blockWorkspace" class="workspace-area workspace-grid" style="height:24rem;" ondrop="drop(event)" ondragover="allowDrop(event)">'+
+           '<div class="workspace-overlay"></div>'+
+           '<div id="workspaceHint" class="workspace-empty-hint hidden">'+
+           '<div class="text-3xl">🎯</div>'+
+           '<div class="text-sm">왼쪽 팔레트에서 블록을 드래그하세요</div>'+
+           '</div>'+
            '</div>'+
            '<div class="mt-3 flex items-center justify-between text-xs">'+
            '<div class="text-gray-500">💡 힌트: 반복문으로 코드를 줄여보세요</div>'+
@@ -1336,17 +1394,8 @@ function toggleOptMode() {
 function initBlockly() {
     // 엔트리 스타일의 드래그 앤 드롭 시스템 초기화
     if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
-    
-    // 작업 공간 배경 힌트 추가
-    var workspace = document.getElementById('blockWorkspace');
-    if (workspace && AppState.workspaceBlocks.length === 0) {
-        workspace.innerHTML = '<div class="workspace-hint flex items-center justify-center text-gray-300 text-sm">'+
-                             '<div class="text-center">'+
-                             '<div class="text-4xl mb-2">🎯</div>'+
-                             '<p>왼쪽 팔레트에서<br>블록을 드래그하여 배치하세요</p>'+
-                             '</div></div>';
-    }
-    
+
+    renderWorkspaceBlocks();
     lucide.createIcons();
     updateBlockCount();
 }
@@ -1356,8 +1405,7 @@ var dragOffset = { x: 0, y: 0 };
 
 function dragStart(e) {
     draggedBlock = {
-        type: e.target.dataset.block,
-        content: e.target.innerHTML
+        type: e.target.dataset.block
     };
     
     // 드래그 이미지 설정
@@ -1388,13 +1436,15 @@ function drop(e) {
     var blockId = 'block_' + Date.now();
     
     // 블록 HTML 생성
+    var blockContent = getBlockMarkup(draggedBlock.type);
+
     var blockHtml = '<div id="'+blockId+'" class="block-workspace-item '+getBlockClass(draggedBlock.type)+'" '+
                    'style="left:'+x+'px;top:'+y+'px;" '+
                    'draggable="true" ondragstart="moveBlockStart(event,\''+blockId+'\')" '+
                    'ondrag="moveBlock(event,\''+blockId+'\')" ondragend="moveBlockEnd(event,\''+blockId+'\')">'+
                    '<div class="flex items-center justify-between gap-2">'+
-                   '<div class="flex-1">'+draggedBlock.content+'</div>'+
-                   '<button onclick="removeBlock(\''+blockId+'\')" class="text-white opacity-70 hover:opacity-100" '+
+                   '<div class="flex-1">'+blockContent+'</div>'+
+                   '<button type="button" onclick="removeBlock(\''+blockId+'\')" class="workspace-remove" '+
                    'style="background:none;border:none;padding:0;cursor:pointer;">'+
                    '<i data-lucide="x" class="h-4 w-4"></i>'+
                    '</button>'+
@@ -1409,7 +1459,8 @@ function drop(e) {
         id: blockId,
         type: draggedBlock.type,
         x: x,
-        y: y
+        y: y,
+        content: blockContent
     });
     
     lucide.createIcons();
@@ -1435,6 +1486,24 @@ function getBlockClass(type) {
         'console': 'block-category-looks'
     };
     return map[type] || 'block-category-flow';
+}
+
+function getBlockMarkup(type) {
+    var map = {
+        'start': '▶ 시작하기 버튼을 클릭했을 때',
+        'repeat-start': '▶ 무한 반복하기',
+        'repeat': '<span class="block-input">10</span> 번 반복하기',
+        'if': '만약 <span class="block-input">조건</span> 이라면',
+        'wait': '<span class="block-input">1</span> 초 기다리기',
+        'add': '<span class="block-input">0</span> + <span class="block-input">0</span>',
+        'compare': '<span class="block-input">0</span> = <span class="block-input">0</span>',
+        'random': '<span class="block-input">1</span> 부터 <span class="block-input">10</span> 사이의 난수',
+        'set-var': '변수 <span class="block-input">이름</span> 을 <span class="block-input">0</span> (으)로 정하기',
+        'change-var': '변수 <span class="block-input">이름</span> 을 <span class="block-input">1</span> 만큼 바꾸기',
+        'print': '<span class="block-input">안녕!</span> 출력하기',
+        'console': '콘솔에 <span class="block-input">값</span> 출력하기'
+    };
+    return map[type] || (type + ' 블록');
 }
 
 var movingBlock = null;
@@ -1521,9 +1590,62 @@ function updateBlockCount() {
     });
     
     AppState.blockCount = Math.max(count, AppState.workspaceBlocks.length * 2);
-    
+
     var el = document.getElementById('stepCount');
     if (el) el.textContent = AppState.blockCount;
+    updateWorkspaceHint();
+}
+
+function updateWorkspaceHint() {
+    var hint = document.getElementById('workspaceHint');
+    var workspace = document.getElementById('blockWorkspace');
+    var hasBlocks = AppState.workspaceBlocks && AppState.workspaceBlocks.length > 0;
+
+    if (hint) {
+        if (hasBlocks) hint.classList.add('hidden');
+        else hint.classList.remove('hidden');
+    }
+
+    if (workspace) {
+        if (hasBlocks) workspace.classList.add('workspace-filled');
+        else workspace.classList.remove('workspace-filled');
+    }
+}
+
+function renderWorkspaceBlocks() {
+    var workspace = document.getElementById('blockWorkspace');
+    if (!workspace) return;
+
+    workspace.querySelectorAll('.block-workspace-item').forEach(function(node) {
+        node.remove();
+    });
+
+    if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
+
+    AppState.workspaceBlocks.forEach(function(block, index) {
+        var blockId = block.id || ('block_'+Date.now()+'_'+index);
+        block.id = blockId;
+        var markup = block.content || getBlockMarkup(block.type);
+        var x = typeof block.x === 'number' ? block.x : 32 * (index % 4);
+        var y = typeof block.y === 'number' ? block.y : 48 * Math.floor(index / 4);
+        block.x = x;
+        block.y = y;
+
+        var blockHtml = '<div id="'+blockId+'" class="block-workspace-item '+getBlockClass(block.type)+'" '+
+                        'style="left:'+x+'px;top:'+y+'px;" '+
+                        'draggable="true" ondragstart="moveBlockStart(event,\''+blockId+'\')" '+
+                        'ondrag="moveBlock(event,\''+blockId+'\')" ondragend="moveBlockEnd(event,\''+blockId+'\')">'+
+                        '<div class="flex items-center justify-between gap-2">'+
+                        '<div class="flex-1">'+markup+'</div>'+
+                        '<button type="button" onclick="removeBlock(\''+blockId+'\')" class="workspace-remove" '+
+                        'style="background:none;border:none;padding:0;cursor:pointer;">'+
+                        '<i data-lucide="x" class="h-4 w-4"></i>'+
+                        '</button>'+
+                        '</div>'+
+                        '</div>';
+
+        workspace.insertAdjacentHTML('beforeend', blockHtml);
+    });
 }
 
 function addBlockToWorkspace(type) {
