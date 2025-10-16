@@ -79,76 +79,28 @@
         .section-title { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
         .section-title h3 { font-size: 1.125rem; font-weight: 600; color: #111827; }
         
-        .output-console { background: #1f2937; color: #f9fafb; padding: 0.75rem 1rem; border-radius: 0.75rem;
-                          font-family: 'Courier New', monospace; font-size: 0.875rem; min-height: 3rem;
+        .workspace-area { min-height: 16rem; border: 2px dashed #e5e7eb; border-radius: 0.75rem; background: white; position: relative; overflow: hidden; }
+        .workspace-area.workspace-filled { border-style: solid; }
+        .workspace-area.drag-hover { border-color: #3b82f6; background: #f8fafc; }
+        .workspace-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: #cbd5e1; font-size: 0.875rem; line-height: 1.6; pointer-events: none; padding: 1rem; }
+        .block-workspace-item { position: absolute; padding: 0.5rem 0.75rem; border-radius: 0.75rem; border: 1px solid #d1d5db; background: #ffffff; color: #1f2937; cursor: grab; box-shadow: 0 6px 14px rgba(15,23,42,0.08); transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .block-workspace-item.dragging { opacity: 0.85; cursor: grabbing; transform: scale(1.02); box-shadow: 0 12px 24px rgba(15,23,42,0.14); }
+        .block-workspace-item.snapped { transition: left 0.18s ease, top 0.18s ease; }
+        .block-workspace-item .workspace-remove { background: none; border: none; color: #6b7280; cursor: pointer; padding: 0; }
+        .block-workspace-item .workspace-remove:hover { color: #111827; }
+        .block-input { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; padding: 0.15rem 0.45rem; border-radius: 9999px; background: #e5e7eb; color: #1f2937; font-size: 0.75rem; font-weight: 600; }
+        
+        .output-console { background: #1f2937; color: #f9fafb; padding: 0.75rem 1rem; border-radius: 0.75rem; 
+                          font-family: 'Courier New', monospace; font-size: 0.875rem; min-height: 3rem; 
                           display: flex; align-items: center; justify-content: center; }
         
         .code-block { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 0.75rem; 
                       font-family: 'Courier New', monospace; font-size: 0.875rem; overflow-x: auto; line-height: 1.5; }
         
-        .entry-palette-card { background: linear-gradient(180deg, #0eb7ff 0%, #0aa5ff 65%, #0796ff 100%);
-                              border-radius: 1.5rem; border: none; box-shadow: 0 18px 38px rgba(10,149,255,0.22); color: white; }
-        .entry-palette-card .card-body { padding: 1.5rem; }
-        .entry-palette-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-        .entry-palette-header h3 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
-        .entry-search { width: 100%; border-radius: 999px; border: none; background: rgba(255,255,255,0.15);
-                        color: white; padding: 0.6rem 1rem; font-size: 0.85rem; transition: background 0.2s; }
-        .entry-search::placeholder { color: rgba(255,255,255,0.6); }
-        .entry-search:focus { outline: none; background: rgba(255,255,255,0.25); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.4); }
-        .block-palette { margin-top: 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
-        .block-palette-category { background: rgba(255,255,255,0.12); border-radius: 1.25rem; padding: 1rem; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
-        .block-palette-title { font-size: 0.9rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
-        .block-stack { display: flex; flex-direction: column; gap: 0.5rem; }
-        .block-item { padding: 0.65rem 0.85rem; border-radius: 1rem; color: #0b1f33; font-weight: 600;
-                      box-shadow: 0 12px 18px rgba(13,80,160,0.15); border: none; text-align: center; cursor: grab;
-                      transition: transform 0.15s ease, box-shadow 0.15s ease; position: relative; }
-        .block-item:active { cursor: grabbing; }
-        .block-item:hover { transform: translateY(-3px); box-shadow: 0 16px 26px rgba(13,80,160,0.25); }
-        .block-input { display: inline-flex; align-items: center; justify-content: center; min-width: 2.5rem; padding: 0 0.5rem;
-                       border-radius: 999px; background: rgba(255,255,255,0.75); color: #0b1f33; font-size: 0.8rem;
-                       margin: 0 0.2rem; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.08); }
-        .block-category-start { background: linear-gradient(90deg, #ffe869 0%, #ffd43a 100%); }
-        .block-category-flow { background: linear-gradient(90deg, #ffb969 0%, #ff9d39 100%); }
-        .block-category-calc { background: linear-gradient(90deg, #82f0aa 0%, #51d48d 100%); }
-        .block-category-var { background: linear-gradient(90deg, #ff9ac9 0%, #ff77a6 100%); }
-        .block-category-looks { background: linear-gradient(90deg, #9fa6ff 0%, #7b87ff 100%); }
-        .block-item::after { content: ''; position: absolute; top: 50%; right: -0.6rem; transform: translateY(-50%);
-                             width: 1rem; height: 0.75rem; border-radius: 0.5rem; background: inherit;
-                             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.08); }
-        .block-item:last-child::after { display: none; }
-        .workspace-area { min-height: 16rem; border-radius: 1.5rem; background: #e7f3ff;
-                           box-shadow: inset 0 0 0 2px rgba(9,111,255,0.2), 0 25px 45px rgba(15,73,150,0.18);
-                           position: relative; overflow: hidden; transition: box-shadow 0.2s ease, transform 0.2s ease; }
-        .workspace-area.drag-hover { box-shadow: inset 0 0 0 2px rgba(9,111,255,0.28), 0 28px 52px rgba(15,73,150,0.22);
-                                     transform: translateY(-2px); }
-        .workspace-grid { background-image: linear-gradient(0deg, rgba(9,111,255,0.08) 1px, transparent 1px),
-                                           linear-gradient(90deg, rgba(9,111,255,0.08) 1px, transparent 1px);
-                           background-size: 32px 32px; }
-        .workspace-overlay { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at top left, rgba(255,255,255,0.5) 0%, transparent 55%); opacity: 0.4; transition: opacity 0.2s ease; }
-        .workspace-filled .workspace-overlay { opacity: 0.15; }
-        .workspace-area.drag-hover .workspace-overlay { opacity: 0.2; }
-        .workspace-empty-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-                                flex-direction: column; gap: 0.5rem; color: #1b365d; font-weight: 600; font-size: 0.95rem; }
-        .workspace-toolbar { background: linear-gradient(90deg, rgba(255,255,255,0.92) 0%, rgba(233,244,255,0.92) 100%);
-                             border-radius: 1rem; padding: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;
-                             box-shadow: 0 12px 25px rgba(9,111,255,0.18); }
-        .workspace-toolbar .btn { border-radius: 0.9rem; font-weight: 600; }
-        .block-workspace-item { position: absolute; padding: 0.75rem 1.1rem; border-radius: 1.25rem; color: #0b1f33;
-                                 font-weight: 700; cursor: grab; box-shadow: 0 18px 26px rgba(16,80,160,0.18);
-                                 min-width: 12rem; text-align: left; transition: box-shadow 0.2s ease, transform 0.2s ease;
-                                 will-change: left, top; }
-        .block-workspace-item.dragging { opacity: 0.85; box-shadow: 0 22px 32px rgba(16,80,160,0.24); transform: scale(1.02);
-                                         cursor: grabbing; z-index: 5; }
-        .block-workspace-item.snapped { transition: left 0.18s ease, top 0.18s ease; }
-        .block-workspace-item .block-input { background: rgba(255,255,255,0.85); }
-        .block-workspace-item button { position: absolute; top: 0.35rem; right: 0.4rem; background: transparent;
-                                       border: none; color: rgba(11,31,51,0.55); cursor: pointer; }
-        .block-workspace-item button:hover { color: rgba(11,31,51,0.85); }
-
-        .puzzle-sidebar { position: sticky; top: 6.5rem; }
-        @media (max-width: 1279px) {
-            .puzzle-sidebar { position: static; }
-        }
+        .block-item { padding: 0.5rem; border-radius: 0.75rem; border: 1px solid #e5e7eb; background: #f9fafb; 
+                      text-align: center; cursor: pointer; transition: all 0.15s; user-select: none; }
+        .block-item:hover { background: #f3f4f6; border-color: #d1d5db; transform: translateY(-2px); }
+        .block-item:active { transform: translateY(0); }
         
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; 
                  background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
@@ -261,25 +213,7 @@ var AppState = {
     assignments: [],
     students: [],
     charts: {},
-    workspaceBlocks: [],
-    aiInsights: {
-        summary: '실행을 진행하면 AI가 코드 패턴을 분석해드립니다.',
-        suggestions: [
-            '반복되는 패턴은 반복문으로 묶어보세요.',
-            '조건문에는 명확한 종료 조건을 추가하세요.'
-        ],
-        warnings: [],
-        score: null,
-        complexity: 0,
-        coverage: 0
-    },
-    generatedCode: {
-        python: 'total = 0\nfor i in range(1, 11):\n    if i % 2 == 0:\n        total += i\nprint(total)',
-        javascript: 'let total = 0;\nfor (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) {\n    total += i;\n  }\n}\nconsole.log(total);'
-    },
-    runHistory: [],
-    lastRunLabel: null,
-    latestTests: []
+    workspaceBlocks: []
 };
 
 var MockData = {
@@ -300,19 +234,6 @@ var MockData = {
         {name:'1반',accuracy:78,speed:62,students:25},
         {name:'2반',accuracy:83,speed:58,students:23},
         {name:'3반',accuracy:69,speed:74,students:27}
-    ],
-    learningRhythm: [
-        {day:'월',focus:'조건문 심화',minutes:32,mood:'🙂'},
-        {day:'화',focus:'반복 최적화',minutes:45,mood:'🔥'},
-        {day:'수',focus:'함수화 연습',minutes:28,mood:'👍'},
-        {day:'목',focus:'디버깅',minutes:35,mood:'🛠️'},
-        {day:'금',focus:'프로젝트 정리',minutes:22,mood:'📦'}
-    ],
-    platformPulse: [
-        {label:'API 서버',value:99,status:'정상'},
-        {label:'AI 분석',value:94,status:'안정'},
-        {label:'실행 샌드박스',value:91,status:'주의'},
-        {label:'이벤트 큐',value:96,status:'정상'}
     ]
 };
 
@@ -343,28 +264,18 @@ function loadState() {
             var parsed = JSON.parse(saved);
             AppState.assignments = parsed.assignments || [];
             AppState.students = parsed.students || [];
-            if (parsed.aiInsights) AppState.aiInsights = parsed.aiInsights;
-            if (parsed.generatedCode) AppState.generatedCode = parsed.generatedCode;
-            if (parsed.runHistory) AppState.runHistory = parsed.runHistory;
-            if (parsed.lastRunLabel) AppState.lastRunLabel = parsed.lastRunLabel;
-            if (parsed.latestTests) AppState.latestTests = parsed.latestTests;
         }
     } catch(e) { console.error('Load failed:', e); }
 }
 
-function saveState(silent) {
+function saveState() {
     try {
         localStorage.setItem('codeplay_state', JSON.stringify({
             assignments: AppState.assignments,
-            students: AppState.students,
-            aiInsights: AppState.aiInsights,
-            generatedCode: AppState.generatedCode,
-            runHistory: AppState.runHistory,
-            lastRunLabel: AppState.lastRunLabel,
-            latestTests: AppState.latestTests
+            students: AppState.students
         }));
-        if (!silent) showToast('데이터 저장됨', 'success');
-    } catch(e) { if (!silent) showToast('저장 실패', 'error'); }
+        showToast('데이터 저장됨', 'success');
+    } catch(e) { showToast('저장 실패', 'error'); }
 }
 
 function initDemoData() {
@@ -381,18 +292,6 @@ function initDemoData() {
             {id:2,name:'최도윤',role:'학생',clazz:'2반',progress:78,score:88},
             {id:3,name:'박서연',role:'학생',clazz:'1반',progress:92,score:95},
             {id:4,name:'한서우',role:'교사',clazz:'—',progress:100,score:100}
-        ];
-    }
-    if (AppState.runHistory.length === 0) {
-        AppState.runHistory = [
-            {timestamp:'2025-10-13 09:20',score:68,summary:'조건문으로 기본 구조 점검',coverage:52,warnings:0}
-        ];
-    }
-    if (!AppState.latestTests || AppState.latestTests.length === 0) {
-        AppState.latestTests = [
-            {name:'기본 로직 검증',passed:true},
-            {name:'최적화 규칙',passed:false},
-            {name:'안정성 점검',passed:true}
         ];
     }
 }
@@ -427,303 +326,6 @@ function destroyCharts() {
         if (AppState.charts[k] && AppState.charts[k].destroy) AppState.charts[k].destroy();
     }
     AppState.charts = {};
-}
-
-function formatTimestamp(value) {
-    var date = value instanceof Date ? value : new Date(value);
-    if (isNaN(date.getTime())) return '—';
-    var y = date.getFullYear();
-    var m = String(date.getMonth() + 1).padStart(2, '0');
-    var d = String(date.getDate()).padStart(2, '0');
-    var hh = String(date.getHours()).padStart(2, '0');
-    var mm = String(date.getMinutes()).padStart(2, '0');
-    return y + '-' + m + '-' + d + ' ' + hh + ':' + mm;
-}
-
-function escapeHtml(value) {
-    if (value === null || value === undefined) return '';
-    return String(value).replace(/[&<>"']/g, function(ch) {
-        switch (ch) {
-            case '&': return '&amp;';
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '"': return '&quot;';
-            case "'": return '&#39;';
-            default: return ch;
-        }
-    });
-}
-
-function getOrderedBlocks() {
-    if (!AppState.workspaceBlocks || AppState.workspaceBlocks.length === 0) return [];
-    return AppState.workspaceBlocks.slice().sort(function(a, b) {
-        var ay = typeof a.y === 'number' ? a.y : 0;
-        var by = typeof b.y === 'number' ? b.y : 0;
-        if (ay === by) {
-            var ax = typeof a.x === 'number' ? a.x : 0;
-            var bx = typeof b.x === 'number' ? b.x : 0;
-            return ax - bx;
-        }
-        return ay - by;
-    });
-}
-
-function analyzeWorkspace() {
-    var counts = {};
-    var blocks = AppState.workspaceBlocks || [];
-    blocks.forEach(function(block) {
-        counts[block.type] = (counts[block.type] || 0) + 1;
-    });
-
-    var suggestions = [];
-    var warnings = [];
-
-    if (!counts['repeat']) suggestions.push('반복되는 명령은 반복문으로 묶어 코드 길이를 줄여보세요.');
-    if (!counts['if']) suggestions.push('조건문을 활용하면 입력에 따른 분기 처리가 가능해요.');
-    if ((counts['repeat'] || 0) > 2) warnings.push('반복문이 많아요. 종료 조건을 명확히 해주세요.');
-    if ((counts['if'] || 0) > 3) warnings.push('조건문 중첩이 많아 가독성이 떨어질 수 있어요.');
-    if ((counts['print'] || 0) > 3) warnings.push('출력 블록이 많아 결과 로그가 길어질 수 있어요.');
-    if (counts['random']) warnings.push('난수 블록이 있어 실행 결과가 매번 달라질 수 있어요.');
-
-    if (blocks.length >= 8 && !counts['set-var']) {
-        suggestions.push('변수를 선언해 중복 값을 저장하면 유지보수가 쉬워져요.');
-    }
-
-    var uniqueCount = Object.keys(counts).length;
-    var complexity = (counts['repeat'] || 0) * 3 + (counts['if'] || 0) * 2 + (counts['change-var'] || 0) + (counts['set-var'] || 0);
-    var coverage = Math.min(100, uniqueCount * 18 + (counts['repeat'] ? 12 : 0) + (counts['if'] ? 10 : 0));
-    var score = 58 + (counts['repeat'] ? counts['repeat'] * 6 : 0) + (counts['if'] ? counts['if'] * 5 : 0) + (counts['set-var'] ? 4 : 0) - warnings.length * 5;
-    score = Math.max(45, Math.min(100, score));
-
-    if (suggestions.length === 0) {
-        suggestions.push('세부 동작을 함수로 분리하면 재사용과 테스트가 쉬워져요.');
-    }
-
-    var summary = '반복 블록 ' + (counts['repeat'] || 0) + '개와 조건 블록 ' + (counts['if'] || 0) + '개를 활용해 ' + (AppState.blockCount || 0) + '단계를 구성했어요.';
-    if (counts['print']) summary += ' 출력 블록이 ' + counts['print'] + '개 포함되어 실행 결과를 바로 확인할 수 있어요.';
-    if (counts['set-var']) summary += ' 변수 블록을 사용해 상태를 관리하고 있어요.';
-
-    var expectedOutput = counts['random'] ? '난수 기반 결과' : (counts['print'] ? '콘솔 메시지' : '시뮬레이션 액션');
-    var alertLevel = warnings.length > 0 ? '주의' : (score >= 75 ? '안정' : '점검');
-
-    return {
-        counts: counts,
-        suggestions: suggestions,
-        warnings: warnings,
-        summary: summary,
-        score: score,
-        complexity: complexity,
-        coverage: coverage,
-        expectedOutput: expectedOutput,
-        alertLevel: alertLevel,
-        recommendedFocus: counts['repeat'] ? '조건 최적화' : '반복 패턴 설계'
-    };
-}
-
-function convertBlocksToCode(lang) {
-    var ordered = getOrderedBlocks();
-    var indent = lang === 'python' ? '    ' : '  ';
-    if (ordered.length === 0) {
-        return lang === 'python' ? '# 블록을 배치하면 Python 코드가 생성됩니다.' : '// 블록을 배치하면 JavaScript 코드가 생성됩니다.';
-    }
-
-    var lines = [];
-    ordered.forEach(function(block) {
-        if (lang === 'python') {
-            switch(block.type) {
-                case 'start':
-                    lines.push('# ▶ 시작하기 이벤트');
-                    break;
-                case 'repeat-start':
-                    lines.push('while True:');
-                    lines.push(indent + '# TODO: 반복 실행할 동작');
-                    break;
-                case 'repeat':
-                    lines.push('for i in range(10):');
-                    lines.push(indent + '# TODO: 반복 본문 구현');
-                    break;
-                case 'if':
-                    lines.push('if condition:');
-                    lines.push(indent + '# TODO: 조건이 참일 때 실행');
-                    break;
-                case 'wait':
-                    lines.push('time.sleep(1)  # 1초 대기');
-                    break;
-                case 'add':
-                    lines.push('result = value_a + value_b');
-                    break;
-                case 'compare':
-                    lines.push('is_equal = left == right');
-                    break;
-                case 'random':
-                    lines.push('value = random.randint(1, 10)');
-                    break;
-                case 'set-var':
-                    lines.push('variable = 0');
-                    break;
-                case 'change-var':
-                    lines.push('variable += 1');
-                    break;
-                case 'print':
-                    lines.push('print("안녕!")');
-                    break;
-                case 'console':
-                    lines.push('print(value)');
-                    break;
-                default:
-                    lines.push('# ' + block.type + ' 블록 처리');
-            }
-        } else {
-            switch(block.type) {
-                case 'start':
-                    lines.push('// ▶ 시작하기 이벤트');
-                    break;
-                case 'repeat-start':
-                    lines.push('while (true) {');
-                    lines.push(indent + '// TODO: 반복 실행할 동작');
-                    lines.push('}');
-                    break;
-                case 'repeat':
-                    lines.push('for (let i = 0; i < 10; i++) {');
-                    lines.push(indent + '// TODO: 반복 본문 구현');
-                    lines.push('}');
-                    break;
-                case 'if':
-                    lines.push('if (condition) {');
-                    lines.push(indent + '// TODO: 조건이 참일 때 실행');
-                    lines.push('}');
-                    break;
-                case 'wait':
-                    lines.push('await wait(1000);');
-                    break;
-                case 'add':
-                    lines.push('const result = valueA + valueB;');
-                    break;
-                case 'compare':
-                    lines.push('const isEqual = left === right;');
-                    break;
-                case 'random':
-                    lines.push('const value = Math.floor(Math.random() * 10) + 1;');
-                    break;
-                case 'set-var':
-                    lines.push('let variable = 0;');
-                    break;
-                case 'change-var':
-                    lines.push('variable += 1;');
-                    break;
-                case 'print':
-                    lines.push('console.log("안녕!");');
-                    break;
-                case 'console':
-                    lines.push('console.log(value);');
-                    break;
-                default:
-                    lines.push('// ' + block.type + ' 블록 처리');
-            }
-        }
-    });
-
-    return lines.join('\n');
-}
-
-function getGeneratedCode(lang) {
-    var defaults = {
-        python: 'total = 0\nfor i in range(1, 11):\n    if i % 2 == 0:\n        total += i\nprint(total)',
-        javascript: 'let total = 0;\nfor (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) {\n    total += i;\n  }\n}\nconsole.log(total);'
-    };
-    if (!AppState.generatedCode) {
-        return lang === 'python' ? defaults.python : defaults.javascript;
-    }
-    var key = lang === 'python' ? 'python' : 'javascript';
-    var code = AppState.generatedCode[key];
-    if (!code || !code.trim()) {
-        return defaults[key];
-    }
-    return code;
-}
-
-function refreshPuzzleWidgets() {
-    var runOutputEl = document.getElementById('runOutput');
-    if (runOutputEl) {
-        var outputText = AppState.runResult ? escapeHtml(AppState.runResult).replace(/\n/g, '<br>') : '[대기 중]';
-        runOutputEl.innerHTML = outputText;
-    }
-
-    var testsEl = document.getElementById('testResults');
-    if (testsEl) {
-        var testsHtml = (AppState.latestTests || []).map(function(test) {
-            return '<div class="flex items-center justify-between rounded-lg bg-gray-50 p-2 text-xs">'+
-                   '<span class="font-medium">'+escapeHtml(test.name)+'</span>'+
-                   '<span class="'+(test.passed?'text-green-600':'text-red-600')+'">'+(test.passed?'통과':'실패')+'</span>'+
-                   '</div>';
-        }).join('');
-        testsEl.innerHTML = testsHtml || '<div class="text-xs text-gray-500">테스트 결과가 없습니다.</div>';
-    }
-
-    if (AppState.aiInsights) {
-        var ai = AppState.aiInsights;
-        var summaryEl = document.getElementById('aiSummary');
-        if (summaryEl) summaryEl.textContent = ai.summary || '실행을 진행하면 AI가 피드백을 제공합니다.';
-        var scoreEl = document.getElementById('aiMetricScore');
-        if (scoreEl) scoreEl.textContent = ai.score !== null ? ai.score : '—';
-        var coverageEl = document.getElementById('aiMetricCoverage');
-        if (coverageEl) coverageEl.textContent = (ai.coverage || 0) + '%';
-        var complexityEl = document.getElementById('aiMetricComplexity');
-        if (complexityEl) complexityEl.textContent = ai.complexity || 0;
-        var expectedEl = document.getElementById('aiExpectedOutput');
-        if (expectedEl) expectedEl.textContent = ai.expectedOutput || '—';
-        var focusEl = document.getElementById('aiFocus');
-        if (focusEl) {
-            if (ai.recommendedFocus) {
-                focusEl.style.display = '';
-                focusEl.textContent = '다음 집중 주제: ' + ai.recommendedFocus;
-            } else {
-                focusEl.style.display = 'none';
-            }
-        }
-        var suggestionsEl = document.getElementById('aiSuggestions');
-        if (suggestionsEl) {
-            var suggestionHtml = (ai.suggestions || []).map(function(text, idx) {
-                return '<li class="flex items-start gap-2 text-sm"><span class="badge badge-primary">'+(idx+1)+'</span><span>'+escapeHtml(text)+'</span></li>';
-            }).join('');
-            suggestionsEl.innerHTML = suggestionHtml || '<li class="text-sm text-gray-500">실행 후 추천이 제공됩니다.</li>';
-        }
-        var warningsEl = document.getElementById('aiWarnings');
-        if (warningsEl) {
-            var warningHtml = (ai.warnings || []).map(function(text) {
-                return '<li class="flex items-start gap-2 text-xs text-red-600"><i data-lucide="shield-alert" class="h-3 w-3 mt-0.5"></i><span>'+escapeHtml(text)+'</span></li>';
-            }).join('');
-            warningsEl.innerHTML = warningHtml || '<li class="text-xs text-gray-500">위험 요소 없음</li>';
-        }
-    }
-
-    var pythonPreview = document.getElementById('pythonPreview');
-    if (pythonPreview) pythonPreview.textContent = getGeneratedCode('python');
-    var javascriptPreview = document.getElementById('javascriptPreview');
-    if (javascriptPreview) javascriptPreview.textContent = getGeneratedCode('javascript');
-
-    var timestampPython = document.getElementById('codeTimestampPython');
-    var timestampJS = document.getElementById('codeTimestampJS');
-    if (timestampPython) timestampPython.textContent = AppState.lastRunLabel || '최근 실행 없음';
-    if (timestampJS) timestampJS.textContent = AppState.lastRunLabel || '최근 실행 없음';
-
-    var historyEl = document.getElementById('runHistoryList');
-    if (historyEl) {
-        var historyHtml = AppState.runHistory.map(function(item) {
-            return '<div class="flex items-start justify-between gap-3 rounded-lg border border-gray-100 bg-white p-2 text-xs">'+
-                   '<div>'+ 
-                   '<div class="font-semibold text-gray-700">'+item.score+'점 · 커버리지 '+(item.coverage||0)+'%</div>'+ 
-                   '<div class="text-gray-500">'+escapeHtml(item.summary)+'</div>'+ 
-                   '<div class="text-gray-400">경고 '+(item.warnings||0)+'건</div>'+ 
-                   '</div>'+ 
-                   '<div class="text-gray-400 whitespace-nowrap">'+escapeHtml(item.timestamp)+'</div>'+ 
-                   '</div>';
-        }).join('');
-        historyHtml = historyHtml || '<div class="text-xs text-gray-500">실행 버튼을 눌러 히스토리를 쌓아보세요.</div>';
-        historyEl.innerHTML = historyHtml;
-    }
-
-    lucide.createIcons();
 }
 
 // ==================== NAVIGATION ====================
@@ -789,7 +391,7 @@ function renderContent() {
     
     setTimeout(function() {
         if (AppState.page === 's.dashboard') initStudentDashboardCharts();
-        else if (AppState.page === 's.puzzle') { initBlockly(); refreshPuzzleWidgets(); }
+        else if (AppState.page === 's.puzzle') initBlockly();
         else if (AppState.page === 's.results') initResultsCharts();
         else if (AppState.page === 't.classes') initClassCharts();
         else if (AppState.page === 't.reports') initReportsCharts();
@@ -809,48 +411,9 @@ function renderStudentDashboard() {
                  '<div class="text-xs text-gray-500 mt-1">'+b.desc+'</div>'+
                  (b.earned ? '<div class="mt-2 badge badge-success">획득!</div>' : '')+'</div>';
     }
-
-    var insights = AppState.aiInsights || {
-        summary: '실행을 진행하면 AI가 코드 패턴을 분석해드립니다.',
-        suggestions: ['블록을 배치하고 실행해보세요.'],
-        warnings: [],
-        score: null,
-        coverage: 0,
-        complexity: 0,
-        alertLevel: '대기'
-    };
-    var suggestionChips = insights.suggestions.map(function(text) {
-        return '<span class="tag">'+escapeHtml(text)+'</span>';
-    }).join('');
-    if (!suggestionChips) suggestionChips = '<div class="text-xs text-gray-500">추천이 곧 제공됩니다.</div>';
-
-    var warningList = insights.warnings && insights.warnings.length
-        ? '<ul class="list-disc pl-5 text-xs text-red-600 space-y-1">'+insights.warnings.map(function(w) { return '<li>'+escapeHtml(w)+'</li>'; }).join('')+'</ul>'
-        : '<div class="text-xs text-gray-500">경고 없음 — 좋은 상태입니다.</div>';
-
-    var latestHistory = AppState.runHistory.slice(0, 3).map(function(item) {
-        return '<div class="flex items-start justify-between gap-3 rounded-lg bg-gray-50 p-2 text-xs">'+
-               '<div><div class="font-semibold text-gray-700">'+item.score+'점 · 커버리지 '+item.coverage+'%</div>'+
-               '<div class="text-gray-500">'+escapeHtml(item.summary)+'</div></div>'+
-               '<div class="text-gray-400 whitespace-nowrap">'+escapeHtml(item.timestamp)+'</div></div>';
-    }).join('');
-    if (!latestHistory) {
-        latestHistory = '<div class="text-xs text-gray-500">아직 실행 이력이 없습니다. 첫 실행을 시도해보세요.</div>';
-    }
-
-    var rhythmHtml = MockData.learningRhythm.map(function(day) {
-        return '<div class="flex items-center justify-between rounded-xl border p-2 text-sm">'+
-               '<div class="flex items-center gap-3">'+
-               '<span class="font-semibold">'+day.day+'</span>'+day.mood+
-               '</div>'+
-               '<div class="text-right">'+
-               '<div class="text-gray-700">'+day.focus+'</div>'+
-               '<div class="text-xs text-gray-500">집중 시간 '+day.minutes+'분</div>'+
-               '</div></div>';
-    }).join('');
-
+    
     return '<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">'+
-           createCard('주차별 진도율', 'book-open',
+           createCard('주차별 진도율', 'book-open', 
                '<div class="chart-container"><canvas id="progressChart"></canvas></div>'+
                '<div class="mt-3"><button onclick="resetProgress()" class="btn btn-secondary btn-sm">진도 초기화</button></div>',
                'lg:col-span-2')+
@@ -860,168 +423,84 @@ function renderStudentDashboard() {
                '<div class="mt-3 text-xs text-gray-500">목표: 25 이하</div>'+
                '<button onclick="addOptimizationRun()" class="btn btn-primary btn-sm mt-2">새 시도 추가</button>',
                'lg:col-span-3')+
-           createCard('AI 학습 요약', 'brain',
-               '<div class="space-y-3 text-sm">'+
-               '<div class="text-gray-600">'+escapeHtml(insights.summary||'실행을 진행하면 AI가 코드 패턴을 분석해드립니다.')+'</div>'+
-               '<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs">'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">품질 점수</div><div class="text-lg font-semibold text-gray-800">'+(insights.score!==null?insights.score:'—')+'</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">커버리지</div><div class="text-lg font-semibold text-gray-800">'+(insights.coverage||0)+'%</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">복잡도</div><div class="text-lg font-semibold text-gray-800">'+insights.complexity+'</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">상태</div><div class="text-lg font-semibold text-gray-800">'+(insights.alertLevel||'대기')+'</div></div>'+
-               '</div>'+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">추천</div><div class="flex flex-wrap gap-2">'+suggestionChips+'</div></div>'+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">주의</div>'+warningList+'</div>'+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">최근 실행</div><div class="space-y-2">'+latestHistory+'</div></div>'+
-               '</div>',
-               'lg:col-span-3')+
-           createCard('나의 학습 리듬', 'calendar',
-               '<div class="space-y-2">'+rhythmHtml+'</div>'+(
-                   AppState.lastRunLabel ? '<div class="mt-3 text-xs text-gray-500">최근 실행: '+AppState.lastRunLabel+'</div>' : ''
-               ),
-               'lg:col-span-3')+
            '</div>';
 }
 
 function renderStudentPuzzle() {
-    var insights = AppState.aiInsights || {
-        summary: '블록을 배치한 뒤 실행하면 AI가 피드백을 제공합니다.',
-        suggestions: ['실행 버튼을 눌러 피드백을 확인하세요.'],
-        warnings: [],
-        score: null,
-        coverage: 0,
-        complexity: 0,
-        expectedOutput: '—',
-        recommendedFocus: '기본 구조'
-    };
-
-    var summaryText = escapeHtml(insights.summary || '실행 대기 중입니다.');
-    var suggestionList = (insights.suggestions || []).map(function(text, index) {
-        return '<li class="flex items-start gap-2"><span class="badge badge-primary">'+(index+1)+'</span><span>'+escapeHtml(text)+'</span></li>';
-    }).join('');
-    if (!suggestionList) suggestionList = '<li class="text-xs text-gray-500">실행 후 추천이 제공됩니다.</li>';
-
-    var warningList = (insights.warnings || []).map(function(text) {
-        return '<li class="flex items-start gap-2 text-xs text-red-600"><i data-lucide="alert-triangle" class="h-3 w-3 mt-0.5"></i><span>'+escapeHtml(text)+'</span></li>';
-    }).join('');
-    if (!warningList) warningList = '<li class="text-xs text-gray-500">위험 요소 없음</li>';
-
-    var metricsHtml = '<div class="grid grid-cols-2 gap-2 text-xs">'+
-        '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">품질 점수</div><div class="text-lg font-semibold text-gray-800" id="aiMetricScore">'+(insights.score!==null?insights.score:'—')+'</div></div>'+ 
-        '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">커버리지</div><div class="text-lg font-semibold text-gray-800" id="aiMetricCoverage">'+(insights.coverage||0)+'%</div></div>'+ 
-        '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">복잡도</div><div class="text-lg font-semibold text-gray-800" id="aiMetricComplexity">'+(insights.complexity||0)+'</div></div>'+ 
-        '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">예상 출력</div><div class="text-sm font-semibold text-gray-800" id="aiExpectedOutput">'+escapeHtml(insights.expectedOutput||'—')+'</div></div>'+ 
-    '</div>';
-
-    var focusHtml = insights.recommendedFocus ? '<div class="rounded-lg bg-indigo-50 p-3 text-xs text-indigo-700" id="aiFocus">다음 집중 주제: '+escapeHtml(insights.recommendedFocus)+'</div>' : '<div class="rounded-lg bg-indigo-50 p-3 text-xs text-indigo-700" id="aiFocus" style="display:none"></div>';
-
-    var historyList = AppState.runHistory.slice(0, 5).map(function(item) {
-        return '<div class="flex items-start justify-between gap-3 rounded-lg border border-gray-100 bg-white p-2 text-xs">'+
-               '<div>'+ 
-               '<div class="font-semibold text-gray-700">'+item.score+'점 · 커버리지 '+(item.coverage||0)+'%</div>'+ 
-               '<div class="text-gray-500">'+escapeHtml(item.summary)+'</div>'+ 
-               '<div class="text-gray-400">경고 '+(item.warnings||0)+'건</div>'+ 
-               '</div>'+ 
-               '<div class="text-gray-400 whitespace-nowrap">'+escapeHtml(item.timestamp)+'</div>'+ 
-               '</div>';
-    }).join('');
-    if (!historyList) historyList = '<div class="text-xs text-gray-500">실행 버튼을 눌러 히스토리를 쌓아보세요.</div>';
-
-    var pythonCode = escapeHtml(getGeneratedCode('python'));
-    var jsCode = escapeHtml(getGeneratedCode('javascript'));
-    var testResults = (AppState.latestTests || []).map(function(test) {
-        return '<div class="flex items-center justify-between rounded-lg bg-gray-50 p-2 text-xs">'+
-               '<span class="font-medium">'+escapeHtml(test.name)+'</span>'+
-               '<span class="'+(test.passed?'text-green-600':'text-red-600')+'">'+(test.passed?'통과':'실패')+'</span>'+
-               '</div>';
-    }).join('');
-    if (!testResults) testResults = '<div class="text-xs text-gray-500">테스트 결과가 없습니다.</div>';
-    var runOutput = AppState.runResult ? escapeHtml(AppState.runResult).replace(/\n/g, '<br>') : '[대기 중]';
-
-    return '<div class="flex flex-col gap-4 xl:flex-row">'+
-           '<aside class="w-full xl:w-80 puzzle-sidebar">'+
-           '<div class="card entry-palette-card"><div class="card-body" style="max-height:calc(100vh-12rem);overflow-y:auto;">'+
-           '<div class="entry-palette-header">'+
-           '<div class="flex items-center gap-2">'+
+    return '<div class="grid grid-cols-1 gap-4 xl:grid-cols-12">'+
+           '<div class="xl:col-span-3">'+
+           '<div class="card"><div class="card-body" style="max-height:calc(100vh-12rem);overflow-y:auto;">'+
+           '<div class="mb-3 flex items-center gap-2">'+
            '<i data-lucide="puzzle" class="h-5 w-5"></i>'+
-           '<h3>블록 팔레트</h3>'+
+           '<h3 class="text-lg font-semibold">블록 팔레트</h3>'+
            '</div>'+
-           '<span class="text-xs font-semibold uppercase tracking-wide text-white/70">Entry Style</span>'+
-           '</div>'+
-           '<input id="blockSearch" placeholder="블록 검색" class="entry-search" onkeyup="searchBlocks()">'+
-           '<div id="blockPalette" class="block-palette">'+
+           '<input id="blockSearch" placeholder="블록 검색" class="input mb-3" onkeyup="searchBlocks()">'+
+           '<div id="blockPalette">'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">🎬 시작</div>'+
-           '<div class="block-stack">'+
-           '<div class="block-item block-category-start" draggable="true" ondragstart="dragStart(event)" data-block="start">'+
+           '<div class="block-item block-category-start mb-2" draggable="true" ondragstart="dragStart(event)" data-block="start">'+
            '▶ 시작하기 버튼을 클릭했을 때'+
            '</div>'+
-           '<div class="block-item block-category-start" draggable="true" ondragstart="dragStart(event)" data-block="repeat-start">'+
+           '<div class="block-item block-category-start mb-2" draggable="true" ondragstart="dragStart(event)" data-block="repeat-start">'+
            '▶ 무한 반복하기'+
-           '</div>'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">🔄 흐름</div>'+
-           '<div class="block-stack">'+
-           '<div class="block-item block-category-flow" draggable="true" ondragstart="dragStart(event)" data-block="repeat">'+
+           '<div class="block-item block-category-flow mb-2" draggable="true" ondragstart="dragStart(event)" data-block="repeat">'+
            '<span class="block-input">10</span> 번 반복하기'+
            '</div>'+
-           '<div class="block-item block-category-flow" draggable="true" ondragstart="dragStart(event)" data-block="if">'+
+           '<div class="block-item block-category-flow mb-2" draggable="true" ondragstart="dragStart(event)" data-block="if">'+
            '만약 <span class="block-input">조건</span> 이라면'+
            '</div>'+
-           '<div class="block-item block-category-flow" draggable="true" ondragstart="dragStart(event)" data-block="wait">'+
+           '<div class="block-item block-category-flow mb-2" draggable="true" ondragstart="dragStart(event)" data-block="wait">'+
            '<span class="block-input">1</span> 초 기다리기'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">📐 계산</div>'+
-           '<div class="block-stack">'+
-           '<div class="block-item block-category-calc" draggable="true" ondragstart="dragStart(event)" data-block="add">'+
+           '<div class="block-item block-category-calc mb-2" draggable="true" ondragstart="dragStart(event)" data-block="add">'+
            '<span class="block-input">0</span> + <span class="block-input">0</span>'+
            '</div>'+
-           '<div class="block-item block-category-calc" draggable="true" ondragstart="dragStart(event)" data-block="compare">'+
+           '<div class="block-item block-category-calc mb-2" draggable="true" ondragstart="dragStart(event)" data-block="compare">'+
            '<span class="block-input">0</span> = <span class="block-input">0</span>'+
            '</div>'+
-           '<div class="block-item block-category-calc" draggable="true" ondragstart="dragStart(event)" data-block="random">'+
+           '<div class="block-item block-category-calc mb-2" draggable="true" ondragstart="dragStart(event)" data-block="random">'+
            '<span class="block-input">1</span> 부터 <span class="block-input">10</span> 사이의 난수'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">📦 변수</div>'+
-           '<div class="block-stack">'+
-           '<div class="block-item block-category-var" draggable="true" ondragstart="dragStart(event)" data-block="set-var">'+
+           '<div class="block-item block-category-var mb-2" draggable="true" ondragstart="dragStart(event)" data-block="set-var">'+
            '변수 <span class="block-input">이름</span> 을 <span class="block-input">0</span> (으)로 정하기'+
            '</div>'+
-           '<div class="block-item block-category-var" draggable="true" ondragstart="dragStart(event)" data-block="change-var">'+
+           '<div class="block-item block-category-var mb-2" draggable="true" ondragstart="dragStart(event)" data-block="change-var">'+
            '변수 <span class="block-input">이름</span> 을 <span class="block-input">1</span> 만큼 바꾸기'+
            '</div>'+
            '</div>'+
            '<div class="block-palette-category">'+
            '<div class="block-palette-title">📺 보이기</div>'+
-           '<div class="block-stack">'+
-           '<div class="block-item block-category-looks" draggable="true" ondragstart="dragStart(event)" data-block="print">'+
+           '<div class="block-item block-category-looks mb-2" draggable="true" ondragstart="dragStart(event)" data-block="print">'+
            '<span class="block-input">안녕!</span> 출력하기'+
            '</div>'+
-           '<div class="block-item block-category-looks" draggable="true" ondragstart="dragStart(event)" data-block="console">'+
+           '<div class="block-item block-category-looks mb-2" draggable="true" ondragstart="dragStart(event)" data-block="console">'+
            '콘솔에 <span class="block-input">값</span> 출력하기'+
            '</div>'+
            '</div>'+
            '</div>'+
-           '<div class="mt-4 rounded-xl bg-white/15 p-4 text-xs font-medium text-white/80 shadow-inner">'+
+           '<div class="mt-3 text-xs text-gray-500 p-3 border border-dashed rounded-xl">'+
            '💡 블록을 드래그하여 작업 공간에 배치하세요'+
            '</div>'+
            '</div></div>'+
-           '</aside>'+
-           '<div class="flex-1">'+
-           '<div class="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3 items-start">'+
-           '<div class="space-y-4 2xl:col-span-2">'+
+           '</div>'+
+           '<div class="xl:col-span-6">'+
            '<div class="card"><div class="card-body">'+
-           '<div class="mb-4 flex flex-wrap items-center justify-between gap-3">'+
-           '<div class="flex items-center gap-2 text-gray-700">'+
+           '<div class="mb-3 flex items-center justify-between flex-wrap gap-2">'+
+           '<div class="flex items-center gap-2">'+
            '<i data-lucide="layers" class="h-5 w-5"></i>'+
            '<h3 class="text-lg font-semibold">작업 공간</h3>'+
            '</div>'+
-           '<div class="workspace-toolbar">'+
+           '<div class="flex gap-2 flex-wrap">'+
            '<span class="tag">목표: 25단계 이하</span>'+
            '<button onclick="toggleOptMode()" class="btn btn-secondary">'+
            '<i data-lucide="rocket" class="h-4 w-4"></i>최적화 '+(AppState.optMode?'ON':'OFF')+
@@ -1031,11 +510,10 @@ function renderStudentPuzzle() {
            '<button onclick="runCode()" class="btn btn-primary">'+
            '<i data-lucide="play" class="h-4 w-4"></i>실행</button>'+
            '</div></div>'+
-           '<div id="blockWorkspace" class="workspace-area workspace-grid" style="height:24rem;" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="workspaceDragEnter(event)" ondragleave="workspaceDragLeave(event)">'+
-           '<div class="workspace-overlay"></div>'+
-           '<div id="workspaceHint" class="workspace-empty-hint hidden">'+
-           '<div class="text-3xl">🎯</div>'+
-           '<div class="text-sm">사이드 팔레트에서 블록을 드래그하세요</div>'+
+           '<div id="blockWorkspace" class="workspace-area" style="height:24rem;" '+
+           'ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="workspaceDragEnter(event)" ondragleave="workspaceDragLeave(event)">'+
+           '<div id="workspaceHint" class="workspace-hint">'+
+           '<div><div class="text-3xl mb-2">🎯</div><div>팔레트에서 블록을 드래그하여 놓아보세요</div></div>'+
            '</div>'+
            '</div>'+
            '<div class="mt-3 flex items-center justify-between text-xs">'+
@@ -1044,90 +522,45 @@ function renderStudentPuzzle() {
            '</div>'+
            '</div></div>'+
            '</div>'+
-           '<div class="space-y-4">'+
+           '<div class="xl:col-span-3 space-y-4">'+
            createCard('시뮬레이션','activity',
                '<div class="flex items-center justify-center rounded-xl border p-4" style="min-height:16rem;">'+
                '<div class="text-center w-full">'+
                '<div class="text-sm text-gray-500 mb-2">실행 결과</div>'+
-               '<div class="output-console" id="runOutput">'+runOutput+'</div>'+
-               '<div class="mt-3 space-y-2" id="testResults">'+testResults+'</div>'+
-               '<div class="mt-3 text-xs text-gray-500">예상 출력: '+escapeHtml(insights.expectedOutput||'—')+'</div>'+
+               '<div class="output-console" id="runOutput">'+(AppState.runResult||'[대기 중]')+'</div>'+
+               '<div id="testResults" class="mt-3"></div>'+
                '</div></div>')+
-           createCard('AI 피드백','sparkles',
-               '<div class="space-y-3 text-sm">'+
-               '<div class="text-gray-600" id="aiSummary">'+summaryText+'</div>'+metricsHtml+focusHtml+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">추천</div><ul class="space-y-2" id="aiSuggestions">'+suggestionList+'</ul></div>'+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">주의</div><ul class="space-y-2" id="aiWarnings">'+warningList+'</ul></div>'+
-               '<button onclick="getAIHint()" class="btn btn-secondary w-full">'+
-               '<i data-lucide="lightbulb" class="h-4 w-4"></i>새 힌트 받기</button>'+
-               '</div>')+
-           createCard('코드 미리보기','code-2',
-               '<div class="space-y-4 text-xs">'+
-               '<div><div class="mb-2 flex items-center justify-between text-gray-500 uppercase">Python<span id="codeTimestampPython">'+escapeHtml(AppState.lastRunLabel||'최근 실행 없음')+'</span></div>'+
-               '<pre class="code-block" style="max-height:16rem;" id="pythonPreview">'+pythonCode+'</pre>'+ 
-               '<div class="mt-2 flex gap-2">'+
-               '<button onclick="copyCode(\'python\')" class="btn btn-secondary btn-sm">'+
-               '<i data-lucide="copy" class="h-4 w-4"></i>복사</button>'+ 
-               '<button onclick="downloadCode(\'python\')" class="btn btn-secondary btn-sm">'+
-               '<i data-lucide="download" class="h-4 w-4"></i>다운로드</button></div></div>'+ 
-               '<div><div class="mb-2 flex items-center justify-between text-gray-500 uppercase">JavaScript<span id="codeTimestampJS">'+escapeHtml(AppState.lastRunLabel||'최근 실행 없음')+'</span></div>'+
-               '<pre class="code-block" style="max-height:16rem;" id="javascriptPreview">'+jsCode+'</pre>'+ 
-               '<div class="mt-2 flex gap-2">'+
-               '<button onclick="copyCode(\'javascript\')" class="btn btn-secondary btn-sm">'+
-               '<i data-lucide="copy" class="h-4 w-4"></i>복사</button>'+ 
-               '<button onclick="downloadCode(\'javascript\')" class="btn btn-secondary btn-sm">'+
-               '<i data-lucide="download" class="h-4 w-4"></i>다운로드</button></div></div>'+ 
-               '</div>')+
-           createCard('실행 히스토리','clock',
-               '<div class="space-y-2" id="runHistoryList">'+historyList+'</div>')+
-           '</div>'+
-           '</div>'+
+           createCard('AI 도우미','sparkles',
+               '<ul class="list-disc pl-5 text-sm space-y-2 text-gray-700">'+
+               '<li>조건문 중첩 대신 조기 반환</li>'+
+               '<li>반복문 내 변수 재사용</li>'+
+               '<li>불필요한 비교 연산 제거</li>'+
+               '</ul>'+
+               '<button onclick="getAIHint()" class="btn btn-secondary w-full mt-3">'+
+               '<i data-lucide="lightbulb" class="h-4 w-4"></i>새 힌트 받기</button>')+
            '</div>'+
            '</div>';
 }
 
 function renderStudentCompare() {
-    var pythonCode = escapeHtml(getGeneratedCode('python'));
-    var javascriptCode = escapeHtml(getGeneratedCode('javascript'));
-    var insights = AppState.aiInsights || {
-        score: null,
-        coverage: 0,
-        complexity: 0,
-        summary: '실행을 진행하면 비교 모드에서 AI 분석이 표시됩니다.',
-        suggestions: ['블록을 실행하여 데이터를 수집해보세요.'],
-        warnings: [],
-        alertLevel: '대기',
-        expectedOutput: '—'
-    };
-
-    var suggestionList = (insights.suggestions || []).map(function(text, index) {
-        return '<li class="flex items-start gap-2 text-sm"><span class="badge badge-primary">'+(index+1)+'</span><span>'+escapeHtml(text)+'</span></li>';
-    }).join('');
-    if (!suggestionList) suggestionList = '<li class="text-xs text-gray-500">실행 후 추천이 제공됩니다.</li>';
-
-    var warningList = (insights.warnings || []).map(function(text) {
-        return '<li class="flex items-start gap-2 text-xs text-red-600"><i data-lucide="shield-alert" class="h-3 w-3 mt-0.5"></i><span>'+escapeHtml(text)+'</span></li>';
-    }).join('');
-    if (!warningList) warningList = '<li class="text-xs text-gray-500">위험 요소 없음</li>';
-
-    var testsData = [
-        {name:'기본 로직', passed:(insights.score||0) >= 60},
-        {name:'최적화 기준', passed:(insights.coverage||0) >= 55},
-        {name:'안정성 체크', passed: (insights.warnings||[]).length === 0}
-    ];
-    var tests = testsData.map(function(test, idx) {
-        return '<div class="rounded-xl border p-3 text-sm bg-gray-50">'+
-               '<div class="flex items-center justify-between mb-2">'+
-               '<span class="font-medium">테스트 #'+(idx+1)+' · '+test.name+'</span>'+
-               '<span class="badge '+(test.passed?'badge-success">통과':'badge-danger">점검 필요')+'</span>'+
-               '</div>'+
-               '<div class="text-xs text-gray-500">예상 출력: '+escapeHtml(insights.expectedOutput||'—')+'</div>'+
-               '</div>';
-    }).join('');
-
+    var py = 'total = 0\nfor i in range(1, 11):\n    if i % 2 == 0:\n        total += i\nprint(total)';
+    var js = 'let total = 0;\nfor (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) {\n    total += i;\n  }\n}\nconsole.log(total);';
+    
+    var tests = '';
+    for (var i = 1; i <= 3; i++) {
+        var ok = Math.random() > 0.2;
+        tests += '<div class="rounded-xl border p-3 text-sm bg-gray-50">'+
+                '<div class="flex items-center justify-between mb-2">'+
+                '<span class="font-medium">테스트 #'+i+'</span>'+
+                '<span class="badge '+(ok?'badge-success">통과':'badge-danger">실패')+'</span>'+
+                '</div>'+
+                '<div class="text-xs text-gray-500">입력: N=10 / 출력: '+(ok?'30':'28')+'</div>'+
+                '</div>';
+    }
+    
     return '<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">'+
            createCard('Python','code-2',
-               '<pre class="code-block" style="max-height:24rem;">'+pythonCode+'</pre>'+
+               '<pre class="code-block" style="max-height:24rem;">'+py+'</pre>'+
                '<div class="mt-3 flex gap-2">'+
                '<button onclick="copyCode(\'python\')" class="btn btn-secondary btn-sm">'+
                '<i data-lucide="copy" class="h-4 w-4"></i>복사</button>'+
@@ -1135,24 +568,13 @@ function renderStudentCompare() {
                '<i data-lucide="download" class="h-4 w-4"></i>다운로드</button>'+
                '</div>')+
            createCard('JavaScript','code-2',
-               '<pre class="code-block" style="max-height:24rem;">'+javascriptCode+'</pre>'+
+               '<pre class="code-block" style="max-height:24rem;">'+js+'</pre>'+
                '<div class="mt-3 flex gap-2">'+
                '<button onclick="copyCode(\'javascript\')" class="btn btn-secondary btn-sm">'+
                '<i data-lucide="copy" class="h-4 w-4"></i>복사</button>'+
                '<button onclick="downloadCode(\'javascript\')" class="btn btn-secondary btn-sm">'+
                '<i data-lucide="download" class="h-4 w-4"></i>다운로드</button>'+
                '</div>')+
-           createCard('AI 진단 지표','brain',
-               '<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">품질 점수</div><div class="text-lg font-semibold text-gray-800">'+(insights.score!==null?insights.score:'—')+'</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">커버리지</div><div class="text-lg font-semibold text-gray-800">'+(insights.coverage||0)+'%</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">복잡도</div><div class="text-lg font-semibold text-gray-800">'+(insights.complexity||0)+'</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">상태</div><div class="text-lg font-semibold text-gray-800">'+escapeHtml(insights.alertLevel||'대기')+'</div></div>'+
-               '</div>'+
-               '<div class="mt-3 text-sm text-gray-600">'+escapeHtml(insights.summary||'실행 데이터가 필요합니다.')+'</div>'+
-               '<div class="mt-3"><div class="mb-1 text-xs font-medium text-gray-500 uppercase">추천</div><ul class="space-y-2">'+suggestionList+'</ul></div>'+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">주의</div><ul class="space-y-2">'+warningList+'</ul></div>',
-               'xl:col-span-2')+
            createCard('검증 결과','list-checks',
                '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">'+tests+'</div>'+
                '<div class="mt-3 flex justify-end">'+
@@ -1191,16 +613,6 @@ function renderStudentResults() {
 
 // ==================== TEACHER PAGES ====================
 function renderTeacherClasses() {
-    var atRisk = AppState.students.filter(function(s) {
-        return s.role === '학생' && s.progress < 70;
-    });
-    var riskHtml = atRisk.length ? atRisk.map(function(s) {
-        return '<li class="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50 p-2 text-xs">'+
-               '<span class="font-medium text-amber-800">'+escapeHtml(s.name)+'</span>'+
-               '<span class="text-amber-700">진도 '+s.progress+'%</span>'+
-               '</li>';
-    }).join('') : '<li class="text-xs text-gray-500">위험 학생 없음 — 안정적인 학습 상태입니다.</li>';
-
     return '<div class="grid grid-cols-1 gap-4 xl:grid-cols-3">'+
            createCard('반별 현황','users',
                '<div class="chart-container-large"><canvas id="classChart"></canvas></div>'+
@@ -1221,12 +633,6 @@ function renderTeacherClasses() {
                '<span class="font-medium">박서연</span><span class="text-gray-500">88%</span></li>'+
                '</ul>'+
                '<button onclick="viewAllStudents()" class="btn btn-ghost w-full mt-3">전체 보기</button>')+
-           createCard('위험 감지','alert-triangle',
-               '<div class="space-y-2 text-sm">'+
-               '<div class="rounded-lg bg-amber-50 p-3 text-amber-800">집중 케이스: '+atRisk.length+'명</div>'+
-               '<ul class="space-y-2">'+riskHtml+'</ul>'+
-               '<button onclick="openInterventionPlan()" class="btn btn-secondary btn-sm w-full mt-3">대응 플랜 제안</button>'+
-               '</div>')+
            '</div>';
 }
 
@@ -1268,14 +674,7 @@ function renderTeacherAssignments() {
 }
 
 function renderTeacherReports() {
-    var insights = AppState.aiInsights || { score: null, coverage: 0, summary: '실행 데이터가 수집되면 보고서를 생성할 수 있습니다.', suggestions: [] };
-    var trendSummary = AppState.runHistory.length ? AppState.runHistory[0] : null;
-    var suggestionHtml = (insights.suggestions || []).slice(0,3).map(function(text, idx) {
-        return '<li class="flex items-start gap-2 text-sm"><span class="badge badge-primary">'+(idx+1)+'</span><span>'+escapeHtml(text)+'</span></li>';
-    }).join('');
-    if (!suggestionHtml) suggestionHtml = '<li class="text-sm text-gray-500">추가 실행 후 추천 전략이 제공됩니다.</li>';
-
-    return '<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">'+
+    return '<div class="grid grid-cols-1 gap-4">'+
            createCard('반별 성취도','bar-chart-2',
                '<div class="chart-container"><canvas id="trendChart"></canvas></div>'+
                '<div class="mt-3 flex gap-2">'+
@@ -1283,16 +682,6 @@ function renderTeacherReports() {
                '<i data-lucide="file-text" class="h-4 w-4"></i>상세 리포트</button>'+
                '<button onclick="scheduleReport()" class="btn btn-secondary">'+
                '<i data-lucide="calendar" class="h-4 w-4"></i>정기 예약</button>'+
-               '</div>')+
-           createCard('AI 추천 전략','sparkles',
-               '<div class="space-y-3 text-sm">'+
-               '<div class="rounded-lg bg-blue-50 p-3 text-blue-800">최근 실행 요약: '+escapeHtml(trendSummary ? trendSummary.summary : '데이터 없음')+'</div>'+
-               '<div class="grid grid-cols-2 gap-2 text-xs">'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">품질 점수</div><div class="text-lg font-semibold text-gray-800">'+(insights.score!==null?insights.score:'—')+'</div></div>'+
-               '<div class="rounded-lg bg-gray-50 p-2"><div class="text-gray-500">커버리지</div><div class="text-lg font-semibold text-gray-800">'+(insights.coverage||0)+'%</div></div>'+
-               '</div>'+
-               '<div><div class="mb-1 text-xs font-medium text-gray-500 uppercase">권장 액션</div><ul class="space-y-2">'+suggestionHtml+'</ul></div>'+
-               '<button onclick="shareInsights()" class="btn btn-secondary btn-sm w-full">팀과 공유</button>'+
                '</div>')+
            '</div>';
 }
@@ -1325,14 +714,6 @@ function renderAdminUsers() {
 }
 
 function renderAdminMonitor() {
-    var pulse = (MockData.platformPulse || []).map(function(item) {
-        return '<div class="flex items-center justify-between rounded-lg border border-gray-100 bg-white p-3 text-sm">'+
-               '<div><div class="font-semibold text-gray-800">'+item.label+'</div>'+ 
-               '<div class="text-xs text-gray-500">상태: '+item.status+'</div></div>'+
-               '<div class="text-right"><div class="text-lg font-bold text-gray-900">'+item.value+'%</div></div>'+
-               '</div>';
-    }).join('');
-
     return '<div class="grid gap-4 lg:grid-cols-3">'+
            createCard('서비스 상태','server',
                '<div class="chart-container"><canvas id="serverChart"></canvas></div>'+
@@ -1351,9 +732,6 @@ function renderAdminMonitor() {
                           '<i data-lucide="check-circle" class="h-4 w-4 text-green-600"></i><span>'+s+'</span></li>';
                }).join('')+
                '</ul>')+
-           createCard('플랫폼 상태 지표','activity',
-               '<div class="space-y-2">'+pulse+'</div>'+
-               '<button onclick="refreshMonitor()" class="btn btn-secondary btn-sm w-full mt-3">실시간 동기화</button>')+
            '</div>';
 }
 
@@ -1408,10 +786,10 @@ function toggleOptMode() {
 }
 
 function initBlockly() {
-    // 엔트리 스타일의 드래그 앤 드롭 시스템 초기화
     if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
-
     renderWorkspaceBlocks();
+    updateWorkspaceHint();
+    lucide.createIcons();
 }
 
 var draggedBlock = null;
@@ -1424,11 +802,8 @@ function dragStart(e) {
     var blockType = target && target.dataset ? target.dataset.block : null;
     if (!blockType) return;
 
-    draggedBlock = {
-        type: blockType
-    };
+    draggedBlock = { type: blockType };
 
-    // 드래그 이미지 설정
     var dragImage = target.cloneNode(true);
     dragImage.style.opacity = '0.7';
     document.body.appendChild(dragImage);
@@ -1471,7 +846,7 @@ function toggleWorkspaceHover(active) {
 function createWorkspaceBlockElement(block) {
     var blockElement = document.createElement('div');
     blockElement.id = block.id;
-    blockElement.className = 'block-workspace-item ' + getBlockClass(block.type);
+    blockElement.className = 'block-workspace-item';
     blockElement.dataset.blockType = block.type;
     blockElement.style.left = (block.x || 0) + 'px';
     blockElement.style.top = (block.y || 0) + 'px';
@@ -1495,6 +870,24 @@ function createWorkspaceBlockElement(block) {
     }
 
     return blockElement;
+}
+
+function getBlockMarkup(type) {
+    var map = {
+        'start': '▶ 시작하기 버튼을 클릭했을 때',
+        'repeat-start': '▶ 무한 반복하기',
+        'repeat': '<span class="block-input">10</span> 번 반복하기',
+        'if': '만약 <span class="block-input">조건</span> 이라면',
+        'wait': '<span class="block-input">1</span> 초 기다리기',
+        'add': '<span class="block-input">0</span> + <span class="block-input">0</span>',
+        'compare': '<span class="block-input">0</span> = <span class="block-input">0</span>',
+        'random': '<span class="block-input">1</span> 부터 <span class="block-input">10</span> 사이의 난수',
+        'set-var': '변수 <span class="block-input">이름</span> 을 <span class="block-input">0</span> (으)로 정하기',
+        'change-var': '변수 <span class="block-input">이름</span> 을 <span class="block-input">1</span> 만큼 바꾸기',
+        'print': '<span class="block-input">안녕!</span> 출력하기',
+        'console': '콘솔에 <span class="block-input">값</span> 출력하기'
+    };
+    return map[type] || (type + ' 블록');
 }
 
 function getWorkspaceBlockRecord(blockId) {
@@ -1670,48 +1063,13 @@ function drop(e) {
     requestAnimationFrame(function() {
         snapBlockPosition(blockElement);
         updateBlockCount();
+        updateWorkspaceHint();
     });
 
     draggedBlock = null;
     toggleWorkspaceHover(false);
 
     showToast('블록이 추가되었습니다', 'success');
-}
-
-function getBlockClass(type) {
-    var map = {
-        'start': 'block-category-start',
-        'repeat-start': 'block-category-start',
-        'repeat': 'block-category-flow',
-        'if': 'block-category-flow',
-        'wait': 'block-category-flow',
-        'add': 'block-category-calc',
-        'compare': 'block-category-calc',
-        'random': 'block-category-calc',
-        'set-var': 'block-category-var',
-        'change-var': 'block-category-var',
-        'print': 'block-category-looks',
-        'console': 'block-category-looks'
-    };
-    return map[type] || 'block-category-flow';
-}
-
-function getBlockMarkup(type) {
-    var map = {
-        'start': '▶ 시작하기 버튼을 클릭했을 때',
-        'repeat-start': '▶ 무한 반복하기',
-        'repeat': '<span class="block-input">10</span> 번 반복하기',
-        'if': '만약 <span class="block-input">조건</span> 이라면',
-        'wait': '<span class="block-input">1</span> 초 기다리기',
-        'add': '<span class="block-input">0</span> + <span class="block-input">0</span>',
-        'compare': '<span class="block-input">0</span> = <span class="block-input">0</span>',
-        'random': '<span class="block-input">1</span> 부터 <span class="block-input">10</span> 사이의 난수',
-        'set-var': '변수 <span class="block-input">이름</span> 을 <span class="block-input">0</span> (으)로 정하기',
-        'change-var': '변수 <span class="block-input">이름</span> 을 <span class="block-input">1</span> 만큼 바꾸기',
-        'print': '<span class="block-input">안녕!</span> 출력하기',
-        'console': '콘솔에 <span class="block-input">값</span> 출력하기'
-    };
-    return map[type] || (type + ' 블록');
 }
 
 var movingBlock = null;
@@ -1741,14 +1099,13 @@ function moveBlock(e, blockId) {
 
     var workspace = document.getElementById('blockWorkspace');
     var rect = workspace.getBoundingClientRect();
-    
+
     var x = e.clientX - rect.left - moveStartPos.x;
     var y = e.clientY - rect.top - moveStartPos.y;
-    
-    // 경계 체크
+
     x = Math.max(0, Math.min(x, rect.width - movingBlock.offsetWidth));
     y = Math.max(0, Math.min(y, rect.height - movingBlock.offsetHeight));
-    
+
     movingBlock.style.left = x + 'px';
     movingBlock.style.top = y + 'px';
 }
@@ -1758,6 +1115,7 @@ function moveBlockEnd(e, blockId) {
         movingBlock.classList.remove('dragging');
         snapBlockPosition(movingBlock);
         updateBlockCount();
+        updateWorkspaceHint();
     }
     movingBlock = null;
     toggleWorkspaceHover(false);
@@ -1767,35 +1125,33 @@ function removeBlock(blockId) {
     var block = document.getElementById(blockId);
     if (block) {
         block.remove();
-        
-        // 배열에서 제거
+
         if (AppState.workspaceBlocks) {
             AppState.workspaceBlocks = AppState.workspaceBlocks.filter(function(b) {
                 return b.id !== blockId;
             });
         }
-        
+
         updateBlockCount();
+        updateWorkspaceHint();
         showToast('블록이 제거되었습니다', 'success');
     }
 }
 
 function updateBlockCount() {
     if (!AppState.workspaceBlocks) AppState.workspaceBlocks = [];
-    
+
     var count = 0;
     AppState.workspaceBlocks.forEach(function(block) {
-        // 각 블록 타입별 단계 수 계산
         if (block.type === 'repeat') count += 3;
         else if (block.type === 'if') count += 2;
         else count += 1;
     });
-    
+
     AppState.blockCount = Math.max(count, AppState.workspaceBlocks.length * 2);
 
     var el = document.getElementById('stepCount');
     if (el) el.textContent = AppState.blockCount;
-    updateWorkspaceHint();
 }
 
 function updateWorkspaceHint() {
@@ -1827,11 +1183,10 @@ function renderWorkspaceBlocks() {
     var fragment = document.createDocumentFragment();
 
     AppState.workspaceBlocks.forEach(function(block, index) {
-        var blockId = block.id || ('block_'+Date.now()+'_'+index);
-        block.id = blockId;
+        if (!block.id) block.id = 'block_' + Date.now() + '_' + index;
         block.content = block.content || getBlockMarkup(block.type);
-        block.x = typeof block.x === 'number' ? block.x : 32 * (index % 4);
-        block.y = typeof block.y === 'number' ? block.y : 48 * Math.floor(index / 4);
+        if (typeof block.x !== 'number') block.x = SNAP_GRID * (index % 4);
+        if (typeof block.y !== 'number') block.y = SNAP_GRID * 2 * Math.floor(index / 4);
 
         var element = createWorkspaceBlockElement(block);
         fragment.appendChild(element);
@@ -1845,6 +1200,7 @@ function renderWorkspaceBlocks() {
             snapBlockPosition(node);
         });
         updateBlockCount();
+        updateWorkspaceHint();
     });
 }
 
@@ -1872,18 +1228,11 @@ function searchBlocks() {
 
 function clearWorkspace() {
     if (confirm('작업 공간을 초기화하시겠습니까?')) {
-        var workspace = document.getElementById('blockWorkspace');
-        if (workspace) {
-            // 모든 블록 제거
-            var blocks = workspace.querySelectorAll('.block-workspace-item');
-            blocks.forEach(function(block) {
-                block.remove();
-            });
-        }
-        
         AppState.workspaceBlocks = [];
         AppState.blockCount = 0;
+        renderWorkspaceBlocks();
         updateBlockCount();
+        updateWorkspaceHint();
         showToast('초기화 완료', 'success');
     }
 }
@@ -1920,60 +1269,44 @@ function runCode() {
     
     // 성공적인 실행
     setTimeout(function() {
-        var analysis = analyzeWorkspace();
-        AppState.generatedCode = {
-            python: convertBlocksToCode('python'),
-            javascript: convertBlocksToCode('javascript')
-        };
-
-        var testsData = [
-            { name: '기본 로직 검증', passed: (analysis.score || 0) >= 60 },
-            { name: '최적화 규칙', passed: (analysis.coverage || 0) >= 55 },
-            { name: '안정성 점검', passed: (analysis.warnings || []).length === 0 }
-        ];
-        AppState.latestTests = testsData;
-
-        AppState.aiInsights = analysis;
-        var now = new Date();
-        AppState.lastRunLabel = formatTimestamp(now);
-
-        AppState.runHistory.unshift({
-            timestamp: AppState.lastRunLabel,
-            score: analysis.score,
-            coverage: analysis.coverage,
-            summary: analysis.summary,
-            warnings: (analysis.warnings || []).length
-        });
-        AppState.runHistory = AppState.runHistory.slice(0, 6);
-
-        var passedCount = testsData.filter(function(t) { return t.passed; }).length;
-        var success = passedCount === testsData.length;
-        var statusLabel = success ? '✅ 실행 완료' : '⚠️ 일부 테스트 실패';
-        AppState.runResult = statusLabel + ' ('+analysis.score+'점)\n예상 출력: '+analysis.expectedOutput;
-
-        saveState(true);
-        refreshPuzzleWidgets();
-        showToast(success ? '✅ 실행 성공!' : '⚠️ 개선 필요', success ? 'success' : 'warning');
-    }, 400);
+        var ok = Math.random() > 0.25;
+        AppState.runResult = ok ? '✅ 실행 완료!\n\n출력: 30\n\n모든 테스트 통과' : '❌ 실행 오류\n\n테스트 #2 실패\n(예상: 30, 실제: 28)';
+        var out = document.getElementById('runOutput');
+        if (out) out.textContent = AppState.runResult;
+        
+        var results = document.getElementById('testResults');
+        if (results) {
+            var html = '<div class="space-y-1 text-xs">';
+            for (var i = 1; i <= 3; i++) {
+                var pass = ok || Math.random() > 0.3;
+                html += '<div class="flex justify-between p-2 rounded '+(pass?'bg-green-50 text-green-700':'bg-red-50 text-red-700')+'">'+
+                       '<span>테스트 #'+i+'</span><span>'+(pass?'✓ 통과':'✗ 실패')+'</span></div>';
+            }
+            html += '</div>';
+            results.innerHTML = html;
+        }
+        showToast(ok ? '✅ 실행 성공!' : '⚠️ 일부 실패', ok ? 'success' : 'warning');
+    }, 500);
 }
 
 function getAIHint() {
-    var hints = (AppState.aiInsights && AppState.aiInsights.suggestions && AppState.aiInsights.suggestions.length)
-        ? AppState.aiInsights.suggestions
-        : ['반복 패턴을 묶어 최적화하세요.', '조건을 세분화해 정확도를 높이세요.', '변수를 활용해 상태를 명확히 하세요.'];
-    var hint = hints[Math.floor(Math.random()*hints.length)];
-    showToast('💡 '+hint, 'success');
+    var hints = ['변수명을 명확하게','함수로 분리','반복 줄이기','조건문 단순화'];
+    showToast('💡 '+hints[Math.floor(Math.random()*hints.length)], 'success');
 }
 
 function copyCode(lang) {
-    var code = getGeneratedCode(lang);
+    var code = lang==='python' ? 
+        'total = 0\nfor i in range(1, 11):\n    if i % 2 == 0:\n        total += i\nprint(total)' :
+        'let total = 0;\nfor (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) {\n    total += i;\n  }\n}\nconsole.log(total);';
     navigator.clipboard.writeText(code).then(function() {
         showToast('복사 완료', 'success');
     });
 }
 
 function downloadCode(lang) {
-    var code = getGeneratedCode(lang);
+    var code = lang==='python' ? 
+        'total = 0\nfor i in range(1, 11):\n    if i % 2 == 0:\n        total += i\nprint(total)' :
+        'let total = 0;\nfor (let i = 1; i <= 10; i++) {\n  if (i % 2 === 0) {\n    total += i;\n  }\n}\nconsole.log(total);';
     var blob = new Blob([code], {type:'text/plain'});
     var url = window.URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -2046,26 +1379,6 @@ function viewStudentDetail(id) {
 
 function viewAllStudents() {
     showToast('전체 학생 로드 중...', 'success');
-}
-
-function openInterventionPlan() {
-    var atRisk = AppState.students.filter(function(s) { return s.role === '학생' && s.progress < 70; });
-    var list = atRisk.length ? atRisk.map(function(s) {
-        return '<li class="flex justify-between text-sm"><span>'+escapeHtml(s.name)+'</span><span>'+s.progress+'%</span></li>';
-    }).join('') : '<li class="text-sm text-gray-500">위험 학생이 없습니다.</li>';
-
-    showModal(
-        '<h2 class="text-xl font-bold mb-4">개입 플랜 제안</h2>'+
-        '<div class="space-y-3">'+
-        '<div class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">AI가 '+atRisk.length+'명의 학생을 집중 케이스로 분류했습니다.</div>'+
-        '<ul class="space-y-2">'+list+'</ul>'+
-        '<label class="text-sm font-medium">권장 조치</label>'+
-        '<textarea class="input" style="min-height:6rem;">1) 맞춤형 힌트 제공\n2) 추가 실습 과제 배포\n3) 실시간 피드백 세션 안내</textarea>'+
-        '<div class="flex gap-2">'+
-        '<button onclick="closeModal()" class="btn btn-ghost flex-1">취소</button>'+
-        '<button onclick="closeModal();showToast(\'플랜이 저장되었습니다\',\'success\');" class="btn btn-primary flex-1">저장</button>'+
-        '</div></div>'
-    );
 }
 
 function editAssignment(id) {
@@ -2175,10 +1488,6 @@ function scheduleReport() {
         '<button onclick="closeModal();showToast(\'예약 완료\',\'success\');" class="btn btn-primary flex-1">예약</button>'+
         '</div></div>'
     );
-}
-
-function shareInsights() {
-    showToast('팀 공유 링크가 생성되었습니다', 'success');
 }
 
 function addUser() {
