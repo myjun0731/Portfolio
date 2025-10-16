@@ -137,6 +137,11 @@
         .block-workspace-item button { position: absolute; top: 0.35rem; right: 0.4rem; background: transparent;
                                        border: none; color: rgba(11,31,51,0.55); cursor: pointer; }
         .block-workspace-item button:hover { color: rgba(11,31,51,0.85); }
+
+        .puzzle-sidebar { position: sticky; top: 6.5rem; }
+        @media (max-width: 1279px) {
+            .puzzle-sidebar { position: static; }
+        }
         
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; 
                  background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
@@ -925,8 +930,8 @@ function renderStudentPuzzle() {
     if (!testResults) testResults = '<div class="text-xs text-gray-500">테스트 결과가 없습니다.</div>';
     var runOutput = AppState.runResult ? escapeHtml(AppState.runResult).replace(/\n/g, '<br>') : '[대기 중]';
 
-    return '<div class="grid grid-cols-1 gap-4 xl:grid-cols-12">'+
-           '<div class="xl:col-span-3">'+
+    return '<div class="flex flex-col gap-4 xl:flex-row">'+
+           '<aside class="w-full xl:w-80 puzzle-sidebar">'+
            '<div class="card entry-palette-card"><div class="card-body" style="max-height:calc(100vh-12rem);overflow-y:auto;">'+
            '<div class="entry-palette-header">'+
            '<div class="flex items-center gap-2">'+
@@ -999,8 +1004,10 @@ function renderStudentPuzzle() {
            '💡 블록을 드래그하여 작업 공간에 배치하세요'+
            '</div>'+
            '</div></div>'+
-           '</div>'+
-           '<div class="xl:col-span-6">'+
+           '</aside>'+
+           '<div class="flex-1">'+
+           '<div class="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3 items-start">'+
+           '<div class="space-y-4 2xl:col-span-2">'+
            '<div class="card"><div class="card-body">'+
            '<div class="mb-4 flex flex-wrap items-center justify-between gap-3">'+
            '<div class="flex items-center gap-2 text-gray-700">'+
@@ -1021,7 +1028,7 @@ function renderStudentPuzzle() {
            '<div class="workspace-overlay"></div>'+
            '<div id="workspaceHint" class="workspace-empty-hint hidden">'+
            '<div class="text-3xl">🎯</div>'+
-           '<div class="text-sm">왼쪽 팔레트에서 블록을 드래그하세요</div>'+
+           '<div class="text-sm">사이드 팔레트에서 블록을 드래그하세요</div>'+
            '</div>'+
            '</div>'+
            '<div class="mt-3 flex items-center justify-between text-xs">'+
@@ -1030,7 +1037,7 @@ function renderStudentPuzzle() {
            '</div>'+
            '</div></div>'+
            '</div>'+
-           '<div class="xl:col-span-3 space-y-4">'+
+           '<div class="space-y-4">'+
            createCard('시뮬레이션','activity',
                '<div class="flex items-center justify-center rounded-xl border p-4" style="min-height:16rem;">'+
                '<div class="text-center w-full">'+
@@ -1066,6 +1073,8 @@ function renderStudentPuzzle() {
                '</div>')+
            createCard('실행 히스토리','clock',
                '<div class="space-y-2" id="runHistoryList">'+historyList+'</div>')+
+           '</div>'+
+           '</div>'+
            '</div>'+
            '</div>';
 }
