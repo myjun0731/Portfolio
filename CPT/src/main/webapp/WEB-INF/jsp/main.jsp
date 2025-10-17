@@ -3,6 +3,10 @@
 <%@ page import="java.util.*" %>
 <%
     User user = (User) session.getAttribute("user");
+    if (user == null) {
+        response.sendRedirect(request.getContextPath() + "/login");
+        return;
+    }
     List<ExamPaper> papers = (List<ExamPaper>) request.getAttribute("papers");
 %>
 <!DOCTYPE html>
@@ -21,8 +25,14 @@
 </head>
 <body>
     <h1>환영합니다, <%= user.getName() %>님!</h1>
-    <p><a href="${pageContext.request.contextPath}/logout">로그아웃</a></p>
-    
+    <nav>
+        <a href="${pageContext.request.contextPath}/q/list.jsp">문항 탐색</a> |
+        <a href="${pageContext.request.contextPath}/paper/gii.jsp">연·회차 바로가기</a> |
+        <a href="${pageContext.request.contextPath}/study/wrong">오답 노트</a> |
+        <a href="${pageContext.request.contextPath}/study/goal">목표/리포트</a> |
+        <a href="${pageContext.request.contextPath}/logout">로그아웃</a>
+    </nav>
+
     <h2>📋 기출 회차</h2>
     <div class="papers">
         <% if (papers != null && !papers.isEmpty()) {

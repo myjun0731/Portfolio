@@ -1,21 +1,26 @@
 package com.cbt.model;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ExamSession {
     private int sessId;
     private int userId;
     private int paperId;
     private long seed;
+    private int timeLimitMin;
     private Timestamp startAt;
     private Timestamp endAt;
     private Timestamp submitAt;
     private String status;
     private Integer score;
     private int resumeCnt;
-    
+    private boolean resumed;
+    private final List<Timestamp> focusOutEvents = new ArrayList<>();
+
     public ExamSession() {}
-    
+
     public int getSessId() { return sessId; }
     public void setSessId(int sessId) { this.sessId = sessId; }
     public int getUserId() { return userId; }
@@ -24,6 +29,8 @@ public class ExamSession {
     public void setPaperId(int paperId) { this.paperId = paperId; }
     public long getSeed() { return seed; }
     public void setSeed(long seed) { this.seed = seed; }
+    public int getTimeLimitMin() { return timeLimitMin; }
+    public void setTimeLimitMin(int timeLimitMin) { this.timeLimitMin = timeLimitMin; }
     public Timestamp getStartAt() { return startAt; }
     public void setStartAt(Timestamp startAt) { this.startAt = startAt; }
     public Timestamp getEndAt() { return endAt; }
@@ -36,4 +43,7 @@ public class ExamSession {
     public void setScore(Integer score) { this.score = score; }
     public int getResumeCnt() { return resumeCnt; }
     public void setResumeCnt(int resumeCnt) { this.resumeCnt = resumeCnt; }
+    public boolean isResumed() { return resumed; }
+    public void setResumed(boolean resumed) { this.resumed = resumed; }
+    public List<Timestamp> getFocusOutEvents() { return focusOutEvents; }
 }

@@ -1,20 +1,30 @@
 package com.cbt.servlet;
 
-import com.cbt.dao.PaperDAO;
-import com.cbt.model.*;
-import javax.servlet.*;
-import javax.servlet.http.*;
-import java.io.IOException;
-import java.util.List;
+import com.cbt.model.ExamPaper;
+import com.cbt.store.AppDataStore;
 
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@WebServlet("/main")
 public class MainServlet extends HttpServlet {
-    private PaperDAO paperDAO = new PaperDAO();
-    
+    private final AppDataStore store = AppDataStore.getInstance();
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            List<ExamPaper> papers = paperDAO.getPastPapers();
+            List<ExamPaper> papers = store.getPapers().stream()
+                    .sorted(Comparator.comparing(ExamPaper::getExamYear, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(ExamPaper::getExamRound, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .collect(Collectors.toList());
             request.setAttribute("papers", papers);
             request.getRequestDispatcher("/WEB-INF/jsp/main.jsp").forward(request, response);
         } catch (Exception e) {

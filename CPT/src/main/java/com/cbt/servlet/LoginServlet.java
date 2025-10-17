@@ -3,9 +3,11 @@ package com.cbt.servlet;
 import com.cbt.dao.UserDAO;
 import com.cbt.model.User;
 import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
 
+@WebServlet("/login")
 public class LoginServlet extends HttpServlet {
     private UserDAO userDAO = new UserDAO();
     

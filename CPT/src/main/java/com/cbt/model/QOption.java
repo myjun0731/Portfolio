@@ -6,9 +6,10 @@ public class QOption {
     private int optNo;
     private String text;
     private String isAnswer;
-    
+    private boolean active = true;
+
     public QOption() {}
-    
+
     public int getOptId() { return optId; }
     public void setOptId(int optId) { this.optId = optId; }
     public int getQId() { return qId; }
@@ -19,4 +20,6 @@ public class QOption {
     public void setText(String text) { this.text = text; }
     public String getIsAnswer() { return isAnswer; }
     public void setIsAnswer(String isAnswer) { this.isAnswer = isAnswer; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }
