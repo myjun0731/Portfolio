@@ -3,10 +3,12 @@ package com.cbt.servlet;
 import com.cbt.dao.PaperDAO;
 import com.cbt.model.*;
 import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
 import java.util.List;
 
+@WebServlet("/main")
 public class MainServlet extends HttpServlet {
     private PaperDAO paperDAO = new PaperDAO();
     
