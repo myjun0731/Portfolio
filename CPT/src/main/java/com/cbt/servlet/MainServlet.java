@@ -1,0 +1,26 @@
+package com.cbt.servlet;
+
+import com.cbt.dao.PaperDAO;
+import com.cbt.model.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import java.io.IOException;
+import java.util.List;
+
+public class MainServlet extends HttpServlet {
+    private PaperDAO paperDAO = new PaperDAO();
+    
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            List<ExamPaper> papers = paperDAO.getPastPapers();
+            request.setAttribute("papers", papers);
+            request.getRequestDispatcher("/WEB-INF/jsp/main.jsp").forward(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("error", "메인 페이지 로딩 중 오류가 발생했습니다.");
+            request.getRequestDispatcher("/WEB-INF/jsp/error.jsp").forward(request, response);
+        }
+    }
+}
