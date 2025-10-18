@@ -13,7 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@WebServlet("/paper/gii.jsp")
+@WebServlet("/papers/quick")
 public class PaperQuickServlet extends HttpServlet {
     private final AppDataStore store = AppDataStore.getInstance();
 
@@ -24,6 +24,7 @@ public class PaperQuickServlet extends HttpServlet {
                         .thenComparing(ExamPaper::getExamRound, Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
         req.setAttribute("papers", papers);
+        req.setAttribute("activeNav", "papers");
         req.getRequestDispatcher("/WEB-INF/jsp/paper-quick.jsp").forward(req, resp);
     }
 }

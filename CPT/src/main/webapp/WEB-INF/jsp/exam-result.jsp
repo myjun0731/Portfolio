@@ -14,44 +14,39 @@
     <title>결과 리포트</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
 </head>
-<body>
-<div class="app-shell">
-    <header class="page-header">
-        <div>
-            <h1>📈 세션 결과</h1>
-            <p class="subtitle">정답 통계와 취약 단원을 확인하고 다음 학습 계획을 세워보세요.</p>
-        </div>
-        <nav class="nav-links">
-            <a class="nav-link" href="${pageContext.request.contextPath}/main">대시보드</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/study/wrong">오답 노트</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/study/goal">학습 목표</a>
-        </nav>
-    </header>
+<body class="app-frame">
+<jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
+<main class="app-shell">
+    <section class="page-hero">
+        <h1>📈 세션 결과</h1>
+        <p class="subtitle">정답 통계와 취약 단원을 확인하고 다음 학습 계획을 세워보세요.</p>
+    </section>
 
-    <section class="card">
-        <div class="card-header">
-            <div>
-                <h2>총괄</h2>
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>총괄</h2>
+            <div class="section-actions">
+                <span class="pill">세션 #<%= report.getSession().getSessId() %></span>
             </div>
         </div>
-        <div class="metric-cards">
-            <div class="metric">
+        <div class="stat-stack">
+            <div class="stat-card">
                 <h3><%= report.getScore() %> 점</h3>
-                <span>총점 (정답 <%= report.getCorrectCount() %> / <%= report.getTotalQuestions() %>)</span>
+                <span>정답 <%= report.getCorrectCount() %> / <%= report.getTotalQuestions() %></span>
             </div>
-            <div class="metric">
+            <div class="stat-card">
                 <h3><%= report.getSession().getStartAt() %></h3>
                 <span>시험 시작</span>
             </div>
-            <div class="metric">
+            <div class="stat-card">
                 <h3><%= report.getSession().getSubmitAt() %></h3>
                 <span>제출 완료</span>
             </div>
         </div>
     </section>
 
-    <section class="card">
-        <div class="card-header">
+    <section class="app-section">
+        <div class="section-headline">
             <h2>정확도 분석</h2>
         </div>
         <div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
@@ -82,8 +77,8 @@
         </div>
     </section>
 
-    <section class="card">
-        <div class="card-header">
+    <section class="app-section compact">
+        <div class="section-headline">
             <h2>문항별 결과</h2>
         </div>
         <table class="table">
@@ -100,6 +95,6 @@
             <% } %>
         </table>
     </section>
-</div>
+</main>
 </body>
 </html>

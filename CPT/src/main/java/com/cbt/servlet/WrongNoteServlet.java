@@ -28,6 +28,7 @@ public class WrongNoteServlet extends HttpServlet {
         List<Question> retry = studyService.buildRetrySet(user.getUserId());
         req.setAttribute("retry", retry);
         req.setAttribute("wrongNotes", studyService.getWrongNotes(user.getUserId()));
+        req.setAttribute("activeNav", "wrong");
         req.getRequestDispatcher("/WEB-INF/jsp/study-wrong.jsp").forward(req, resp);
     }
 }

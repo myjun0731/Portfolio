@@ -26,6 +26,7 @@ public class MainServlet extends HttpServlet {
                             .thenComparing(ExamPaper::getExamRound, Comparator.nullsLast(Comparator.reverseOrder())))
                     .collect(Collectors.toList());
             request.setAttribute("papers", papers);
+            request.setAttribute("activeNav", "dashboard");
             request.getRequestDispatcher("/WEB-INF/jsp/main.jsp").forward(request, response);
         } catch (Exception e) {
             e.printStackTrace();

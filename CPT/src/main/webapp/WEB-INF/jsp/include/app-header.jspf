@@ -1,0 +1,30 @@
+<%@ page import="com.cbt.model.User" %>
+<%
+    User currentUser = (User) session.getAttribute("user");
+    String activeNav = (String) request.getAttribute("activeNav");
+%>
+<header class="app-header">
+    <div class="app-brand">
+        <span class="brand-mark">CBT</span>
+        <div class="brand-copy">
+            <strong>정보처리산업기사 CBT</strong>
+            <span>Competency driven 테스트 허브</span>
+        </div>
+    </div>
+    <nav class="app-nav">
+        <a href="${pageContext.request.contextPath}/main" class="app-nav__link<%= "dashboard".equals(activeNav) ? " is-active" : "" %>">대시보드</a>
+        <a href="${pageContext.request.contextPath}/questions" class="app-nav__link<%= "questions".equals(activeNav) ? " is-active" : "" %>">문항 탐색</a>
+        <a href="${pageContext.request.contextPath}/papers/quick" class="app-nav__link<%= "papers".equals(activeNav) ? " is-active" : "" %>">연·회차</a>
+        <a href="${pageContext.request.contextPath}/study/wrong" class="app-nav__link<%= "wrong".equals(activeNav) ? " is-active" : "" %>">오답 노트</a>
+        <a href="${pageContext.request.contextPath}/study/goal" class="app-nav__link<%= "goal".equals(activeNav) ? " is-active" : "" %>">학습 목표</a>
+    </nav>
+    <div class="app-account">
+        <% if (currentUser != null) { %>
+            <div class="account-meta">
+                <span class="account-label">접속 중</span>
+                <span class="account-name"><%= currentUser.getName() %></span>
+            </div>
+            <a href="${pageContext.request.contextPath}/logout" class="btn btn-ghost">로그아웃</a>
+        <% } %>
+    </div>
+</header>

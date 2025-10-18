@@ -28,6 +28,7 @@ public class GoalServlet extends HttpServlet {
         GoalPlan goal = studyService.getGoal(user.getUserId());
         req.setAttribute("goal", goal);
         req.setAttribute("history", studyService.getScoreHistory(user.getUserId()));
+        req.setAttribute("activeNav", "goal");
         req.getRequestDispatcher("/WEB-INF/jsp/study-goal.jsp").forward(req, resp);
     }
 

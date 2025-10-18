@@ -9,7 +9,14 @@
 </head>
 <body class="auth-body">
 <div class="auth-card">
-    <h1>정보처리산업기사 CBT</h1>
+    <div class="auth-brand">
+        <span class="brand-mark">CBT</span>
+        <div class="brand-copy">
+            <strong>정보처리산업기사 CBT</strong>
+            <span>Claude 톤의 프로덕션 UI</span>
+        </div>
+    </div>
+    <h1>로그인</h1>
     <p>계정으로 로그인하여 학습 대시보드와 CBT 시험 기능을 이용하세요.</p>
 
     <% if (request.getAttribute("error") != null) { %>

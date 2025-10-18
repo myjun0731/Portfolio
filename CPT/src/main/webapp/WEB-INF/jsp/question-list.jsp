@@ -30,27 +30,23 @@
         }
     </script>
 </head>
-<body>
-<div class="app-shell">
-    <header class="page-header">
-        <div>
-            <h1>📚 NCS 단원 맵 탐색</h1>
-            <p class="subtitle">과목, 단원, 태그를 교차 필터링하고 문항을 바로 미리 확인해보세요.</p>
-        </div>
-        <nav class="nav-links">
-            <a class="nav-link" href="${pageContext.request.contextPath}/main">대시보드</a>
-            <a class="nav-link active" href="${pageContext.request.contextPath}/q/list.jsp">문항 탐색</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/paper/gii.jsp">연·회차</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/study/wrong">오답 노트</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/study/goal">학습 목표</a>
-        </nav>
-    </header>
+<body class="app-frame">
+<jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
+<main class="app-shell">
+    <section class="page-hero">
+        <h1>📚 NCS 단원 맵 탐색</h1>
+        <p class="subtitle">과목, 단원, 태그를 교차 필터링하며 기출 문항을 즉시 미리보고 필요한 세트를 큐레이션하세요.</p>
+    </section>
 
-    <section class="card">
-        <div class="card-header">
+    <section class="app-section compact">
+        <div class="section-headline">
             <div>
                 <h2>검색 필터</h2>
-                <p class="subtitle">최대 20문항씩 표시됩니다. 조건을 조합해 원하는 문항을 찾으세요.</p>
+                <p class="subtitle">최대 20문항씩 보여집니다. 조건을 조합해 원하는 문항을 찾아보세요.</p>
+            </div>
+            <div class="section-actions">
+                <span class="pill">총 <%= total %>문항</span>
+                <a class="btn btn-ghost" href="${pageContext.request.contextPath}/papers/quick">회차별 보기</a>
             </div>
         </div>
         <form method="get" class="form-grid">
@@ -154,6 +150,6 @@
             <% } %>
         </div>
     <% } %>
-</div>
+</main>
 </body>
 </html>

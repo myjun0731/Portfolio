@@ -3,6 +3,10 @@
 <%@ page import="com.cbt.model.*" %>
 <%
     List<ExamPaper> papers = (List<ExamPaper>) request.getAttribute("papers");
+    if (papers == null) {
+        papers = java.util.Collections.emptyList();
+    }
+    int available = papers.size();
 %>
 <!DOCTYPE html>
 <html lang="ko">
@@ -11,26 +15,19 @@
     <title>응시 세션 생성</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
 </head>
-<body>
-<div class="app-shell">
-    <header class="page-header">
-        <div>
-            <h1>🧭 CBT 응시 시작</h1>
-            <p class="subtitle">문항과 선지는 서버에서 셔플되며, 재접속 시 동일한 순서를 유지합니다.</p>
-        </div>
-        <nav class="nav-links">
-            <a class="nav-link" href="${pageContext.request.contextPath}/main">대시보드</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/paper/gii.jsp">연·회차</a>
-            <a class="nav-link active" href="${pageContext.request.contextPath}/exam/start">응시 준비</a>
-            <a class="nav-link" href="${pageContext.request.contextPath}/study/wrong">오답 노트</a>
-        </nav>
-    </header>
+<body class="app-frame">
+<jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
+<main class="app-shell">
+    <section class="page-hero">
+        <h1>🧭 CBT 응시 시작</h1>
+        <p class="subtitle">문항과 선지는 서버에서 셔플되며, 재접속 시 동일 순서를 유지합니다. 시험을 선택해 세션을 생성하세요.</p>
+    </section>
 
-    <section class="card">
-        <div class="card-header">
-            <div>
-                <h2>세션 선택</h2>
-                <p class="subtitle">시험을 선택하면 동일한 시드로 응시 세션이 생성되고, 남은 시간은 서버 기준으로 관리됩니다.</p>
+    <section class="app-section">
+        <div class="section-headline">
+            <h2>세션 선택</h2>
+            <div class="section-actions">
+                <span class="pill">선택 가능 <%= available %>회차</span>
             </div>
         </div>
         <div class="alert" style="margin-bottom:24px;">
@@ -40,20 +37,24 @@
                 <li>시험 중 세션을 한 번까지 재개할 수 있으며, 마지막으로 접속한 탭만 유효합니다.</li>
             </ul>
         </div>
+        <% if (available == 0) { %>
+            <div class="alert warning" style="margin-bottom:24px;">등록된 기출 회차가 없습니다. 운영자 메뉴에서 시험지를 추가한 뒤 다시 시도해주세요.</div>
+        <% } %>
         <form method="post" class="form-grid">
             <div>
                 <label for="paperId">응시할 시험</label>
-                <select id="paperId" name="paperId" class="paper-select" required>
+                <select id="paperId" name="paperId" class="paper-select" required <%= available == 0 ? "disabled" : "" %>>
                     <% for (ExamPaper paper : papers) { %>
                         <option value="<%= paper.getPaperId() %>"><%= paper.getExamYear() %>년 <%= paper.getExamRound() %>회 - <%= paper.getName() %></option>
                     <% } %>
                 </select>
             </div>
-            <div style="display:flex; justify-content:flex-end;">
-                <button type="submit" class="btn btn-primary">세션 시작</button>
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <a href="${pageContext.request.contextPath}/papers/quick" class="btn btn-ghost">회차 목록</a>
+                <button type="submit" class="btn btn-primary" <%= available == 0 ? "disabled" : "" %>>세션 시작</button>
             </div>
         </form>
     </section>
-</div>
+</main>
 </body>
 </html>

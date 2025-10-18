@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-@WebServlet("/q/list.jsp")
+@WebServlet("/questions")
 public class QuestionListServlet extends HttpServlet {
     private final QuestionService questionService = new QuestionService();
 
@@ -33,6 +33,7 @@ public class QuestionListServlet extends HttpServlet {
         req.setAttribute("size", size);
         req.setAttribute("units", units);
         req.setAttribute("tags", tags);
+        req.setAttribute("activeNav", "questions");
         req.getRequestDispatcher("/WEB-INF/jsp/question-list.jsp").forward(req, resp);
     }
 

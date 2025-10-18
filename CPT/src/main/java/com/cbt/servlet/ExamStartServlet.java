@@ -29,6 +29,7 @@ public class ExamStartServlet extends HttpServlet {
                         .thenComparing(ExamPaper::getExamRound, Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
         req.setAttribute("papers", papers);
+        req.setAttribute("activeNav", "papers");
         req.getRequestDispatcher("/WEB-INF/jsp/exam-start.jsp").forward(req, resp);
     }
 
