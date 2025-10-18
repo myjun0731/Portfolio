@@ -1,4 +1,4 @@
-<%@ taglib prefix="c" uri="http://cbt.com/tags/core" %>
+<%@ taglib prefix="c" uri="/WEB-INF/tld/cbt-core.tld" %>
 <c:set var="activeNavKey" value="${requestScope.activeNav}" />
 <header class="app-header">
     <div class="app-brand">

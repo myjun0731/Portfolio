@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="http://cbt.com/tags/core" %>
+<%@ taglib prefix="c" uri="/WEB-INF/tld/cbt-core.tld" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
