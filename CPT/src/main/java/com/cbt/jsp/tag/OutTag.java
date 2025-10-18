@@ -6,6 +6,8 @@ import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.JspWriter;
 import javax.servlet.jsp.tagext.SimpleTagSupport;
 
+import com.cbt.util.HtmlUtil;
+
 /**
  * Minimal replacement for JSTL's c:out supporting HTML escaping and default values.
  */
@@ -32,38 +34,8 @@ public class OutTag extends SimpleTagSupport {
         if (val == null) {
             return;
         }
-        String output = val.toString();
-        if (escapeXml) {
-            output = escapeXml(output);
-        }
+        String output = escapeXml ? HtmlUtil.escape(val.toString()) : val.toString();
         JspWriter out = getJspContext().getOut();
         out.write(output);
-    }
-
-    private String escapeXml(String input) {
-        StringBuilder sb = new StringBuilder(input.length());
-        for (int i = 0; i < input.length(); i++) {
-            char ch = input.charAt(i);
-            switch (ch) {
-                case '&':
-                    sb.append("&amp;");
-                    break;
-                case '<':
-                    sb.append("&lt;");
-                    break;
-                case '>':
-                    sb.append("&gt;");
-                    break;
-                case '"':
-                    sb.append("&quot;");
-                    break;
-                case '\'':
-                    sb.append("&#39;");
-                    break;
-                default:
-                    sb.append(ch);
-            }
-        }
-        return sb.toString();
     }
 }
