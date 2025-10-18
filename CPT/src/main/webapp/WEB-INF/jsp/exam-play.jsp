@@ -12,50 +12,44 @@
 <head>
     <meta charset="UTF-8">
     <title>CBT 응시</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; background: #1f2937; color: #fff; }
-        .layout { display: flex; min-height: 100vh; }
-        .sidebar { width: 240px; background: rgba(15,23,42,0.9); padding: 16px; overflow-y: auto; }
-        .main { flex: 1; padding: 20px; background: #111827; }
-        .timer { font-size: 24px; margin-bottom: 12px; }
-        .question { background: rgba(17,24,39,0.8); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .options label { display: block; background: rgba(55,65,81,0.6); padding: 12px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; }
-        .options input { margin-right: 12px; }
-        .flag { color: #fbbf24; cursor: pointer; margin-left: 8px; }
-        .status-indicator { display: inline-block; width: 28px; height: 28px; border-radius: 6px; line-height: 28px; text-align: center; margin: 4px; background: #4b5563; color: #fff; cursor: pointer; position: relative; }
-        .status-indicator.review::after { content: '\1F516'; position: absolute; top: -6px; right: -6px; font-size: 12px; }
-        .status-indicator.answered { background: #2563eb; }
-        .warning-banner { display: none; background: #f59e0b; color: #111827; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
-        .offline { background: #dc2626; }
-        button { background: #10b981; color: #111827; padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
 </head>
-<body>
-<div class="layout">
-    <aside class="sidebar">
-        <div class="timer" id="timer"></div>
-        <div class="warning-banner" id="warning">네트워크 연결이 불안정합니다. 재시도 중...</div>
-        <div class="warning-banner offline" id="offline">오프라인입니다. 연결 복구 시 자동 저장됩니다.</div>
-        <div id="navigator">
-            <% int index = 1; for (Question q : questions) { %>
-                <div class="status-indicator" data-qid="<%= q.getQId() %>" onclick="goQuestion(<%= index - 1 %>)"><%= index++ %></div>
-            <% } %>
+<body class="exam-body">
+<div class="exam-shell">
+    <aside class="exam-sidebar">
+        <div>
+            <h2>남은 시간</h2>
+            <div class="timer-display" id="timer"></div>
+            <div class="session-info">세션 ID <%= sessionBean.getSessId() %></div>
         </div>
-        <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit">
-            <input type="hidden" name="sid" value="<%= sessionBean.getSessId() %>">
-            <button type="submit">시험 제출</button>
-        </form>
+        <div class="exam-warning" id="warning" style="display:none;">남은 시간 알림</div>
+        <div class="exam-warning offline" id="offline" style="display:none;">오프라인 상태입니다. 연결 복구 후 자동 저장됩니다.</div>
+        <div>
+            <h2>문항 내비게이터</h2>
+            <div class="exam-badges" id="navigator">
+                <% int index = 1; for (Question q : questions) { %>
+                    <div class="exam-badge" data-qid="<%= q.getQId() %>" onclick="goQuestion(<%= index - 1 %>)"><%= index++ %></div>
+                <% } %>
+            </div>
+        </div>
+        <div class="exam-submit">
+            <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit">
+                <input type="hidden" name="sid" value="<%= sessionBean.getSessId() %>">
+                <button type="submit" class="btn btn-primary" style="width:100%;">시험 제출</button>
+            </form>
+        </div>
     </aside>
-    <main class="main">
+
+    <main class="exam-main">
         <% int idx = 0; for (Question q : questions) { idx++; %>
-            <article class="question" data-index="<%= idx - 1 %>">
+            <article class="exam-question" data-index="<%= idx - 1 %>">
                 <header>
                     <h2>Q<%= idx %>. <%= HtmlUtil.escape(q.getStem()) %></h2>
-                    <small><%= q.getExamYear() %>년 <%= q.getExamRound() %>회 · 난이도 <%= q.getDiff() %>
-                        <span class="flag" onclick="toggleFlag(<%= q.getQId() %>);event.stopPropagation();">🔖</span>
-                    </small>
+                    <div class="meta"><%= q.getExamYear() %>년 <%= q.getExamRound() %>회 · 난이도 <%= q.getDiff() %>
+                        <span class="flag-toggle" onclick="toggleFlag(<%= q.getQId() %>); event.stopPropagation();">🔖</span>
+                    </div>
                 </header>
-                <section class="options">
+                <section class="option-list">
                     <% for (QOption opt : q.getOptions()) { %>
                         <label>
                             <input type="radio" name="q-<%= q.getQId() %>" value="<%= opt.getOptNo() %>" <%= opt.isActive() ? "" : "disabled" %>>
@@ -67,6 +61,7 @@
         <% } %>
     </main>
 </div>
+
 <script>
     const sessionId = <%= sessionBean.getSessId() %>;
     let remaining = <%= remaining %>;
@@ -80,8 +75,9 @@
         const seconds = remaining % 60;
         timer.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
         if ([600,300,60].includes(remaining)) {
-            document.getElementById('warning').style.display = 'block';
-            document.getElementById('warning').textContent = `남은 시간 ${minutes}분 ${seconds}초`;
+            const warn = document.getElementById('warning');
+            warn.style.display = 'block';
+            warn.textContent = `남은 시간 ${minutes}분 ${seconds}초 입니다.`;
         }
         if (remaining <= 0) {
             document.getElementById('submitForm').submit();
@@ -92,7 +88,7 @@
     }
 
     function goQuestion(index) {
-        const articles = document.querySelectorAll('.question');
+        const articles = document.querySelectorAll('.exam-question');
         articles.forEach((article, idx) => {
             article.style.display = idx === index ? 'block' : 'none';
         });
@@ -125,7 +121,7 @@
     }
 
     function updateStatus(qid, answered) {
-        const badge = document.querySelector(`.status-indicator[data-qid="${qid}"]`);
+        const badge = document.querySelector(`.exam-badge[data-qid="${qid}"]`);
         if (badge) {
             badge.classList.toggle('answered', answered);
             badge.classList.toggle('review', flags.has(qid));
@@ -157,10 +153,11 @@
     });
     window.addEventListener('offline', () => setOffline(true));
 
-    document.querySelectorAll('.options input').forEach(input => {
+    document.querySelectorAll('.option-list input').forEach(input => {
         input.addEventListener('change', event => {
             const qid = parseInt(event.target.name.split('-')[1], 10);
             scheduleSave(qid);
+            updateStatus(qid, true);
         });
     });
 
@@ -171,7 +168,7 @@
     });
 
     document.addEventListener('keydown', (event) => {
-        const articles = document.querySelectorAll('.question');
+        const articles = document.querySelectorAll('.exam-question');
         const visibleIndex = Array.from(articles).findIndex(a => a.style.display !== 'none');
         if (event.key === 'ArrowRight') {
             goQuestion(Math.min(articles.length - 1, visibleIndex + 1));
@@ -183,6 +180,7 @@
                 option.checked = true;
                 const qid = parseInt(option.name.split('-')[1], 10);
                 scheduleSave(qid);
+                updateStatus(qid, true);
             }
         }
     });
