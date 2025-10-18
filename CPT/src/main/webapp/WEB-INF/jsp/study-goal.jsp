@@ -19,8 +19,11 @@
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
 <main class="app-shell">
     <section class="page-hero">
-        <h1>🎯 학습 목표 관리</h1>
-        <p class="subtitle">목표 점수를 설정하고 회차별 성과를 추적하며 주간 추천 문제량을 확인하세요.</p>
+        <div class="page-hero__lede">
+            <span class="badge soft">Learning Coach</span>
+            <h1>🎯 학습 목표 관리</h1>
+            <p class="subtitle">목표 점수를 설정하고 회차별 성과를 추적하며 주간 추천 문제량을 확인하세요.</p>
+        </div>
     </section>
 
     <section class="app-section">
@@ -28,22 +31,27 @@
             <h2>목표 점수 설정</h2>
         </div>
         <form method="post" class="goal-form">
-            <div>
-                <label for="target">목표 점수</label>
-                <input type="number" id="target" name="target" value="<%= goal != null ? goal.getTargetScore() : 70 %>" min="0" max="100" required>
+            <div class="goal-grid">
+                <label class="filter-field">
+                    <span>목표 점수</span>
+                    <input type="number" id="target" name="target" value="<%= goal != null ? goal.getTargetScore() : 70 %>" min="0" max="100" required>
+                </label>
+                <label class="filter-field">
+                    <span>시험 예정일</span>
+                    <input type="date" id="examDate" name="examDate" value="<%= goal != null ? goal.getExamDate() : java.time.LocalDate.now().plusMonths(1) %>" required>
+                </label>
+                <label class="filter-field">
+                    <span>일일 추천 문제 수</span>
+                    <input type="number" id="daily" name="daily" value="<%= goal != null ? goal.getDailyQuestionCount() : 20 %>" required>
+                </label>
             </div>
-            <div>
-                <label for="examDate">시험 예정일</label>
-                <input type="date" id="examDate" name="examDate" value="<%= goal != null ? goal.getExamDate() : java.time.LocalDate.now().plusMonths(1) %>" required>
-            </div>
-            <div>
-                <label for="daily">일일 추천 문제 수</label>
-                <input type="number" id="daily" name="daily" value="<%= goal != null ? goal.getDailyQuestionCount() : 20 %>" required>
-            </div>
-            <div style="display:flex; justify-content:flex-end;">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">저장</button>
             </div>
         </form>
+        <div class="goal-callout">
+            <strong>Tip.</strong> 목표일이 가까울수록 자동으로 추천 문제량이 증가하도록 설계되어 있습니다. 과도한 목표 설정을 피하려면 일일 추천량을 주 5일 기준으로 조정하세요.
+        </div>
     </section>
 
     <section class="app-section compact">
@@ -56,15 +64,14 @@
         <% if (history.isEmpty()) { %>
             <div class="alert warning">아직 저장된 결과가 없습니다. CBT 시험을 완료하면 자동으로 기록됩니다.</div>
         <% } else { %>
-            <table class="table">
-                <tr><th>날짜</th><th>점수</th></tr>
+            <ol class="score-timeline">
                 <% for (java.util.Map.Entry<java.time.LocalDate, Integer> entry : history.entrySet()) { %>
-                    <tr>
-                        <td><%= entry.getKey() %></td>
-                        <td><%= entry.getValue() %></td>
-                    </tr>
+                    <li>
+                        <span class="score-timeline__label"><%= entry.getKey() %></span>
+                        <span class="score-timeline__value"><%= entry.getValue() %>점</span>
+                    </li>
                 <% } %>
-            </table>
+            </ol>
         <% } %>
     </section>
 </main>

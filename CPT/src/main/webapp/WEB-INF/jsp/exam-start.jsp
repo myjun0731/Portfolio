@@ -19,8 +19,11 @@
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
 <main class="app-shell">
     <section class="page-hero">
-        <h1>🧭 CBT 응시 시작</h1>
-        <p class="subtitle">문항과 선지는 서버에서 셔플되며, 재접속 시 동일 순서를 유지합니다. 시험을 선택해 세션을 생성하세요.</p>
+        <div class="page-hero__lede">
+            <span class="badge soft">Exam Session</span>
+            <h1>🧭 CBT 응시 시작</h1>
+            <p class="subtitle">문항과 선지는 서버에서 셔플되며, 재접속 시 동일 순서를 유지합니다. 시험을 선택해 세션을 생성하세요.</p>
+        </div>
     </section>
 
     <section class="app-section">
@@ -30,26 +33,26 @@
                 <span class="pill">선택 가능 <%= available %>회차</span>
             </div>
         </div>
-        <div class="alert" style="margin-bottom:24px;">
-            <ul style="padding-left:18px; margin:0;">
+        <div class="alert exam-guide">
+            <ul>
                 <li>타이머는 서버 시간을 기준으로 동작하며, 종료 시 자동 제출됩니다.</li>
                 <li>문항 이동 시 자동 저장되며 네트워크 장애가 발생해도 복구 후 즉시 재전송됩니다.</li>
                 <li>시험 중 세션을 한 번까지 재개할 수 있으며, 마지막으로 접속한 탭만 유효합니다.</li>
             </ul>
         </div>
         <% if (available == 0) { %>
-            <div class="alert warning" style="margin-bottom:24px;">등록된 기출 회차가 없습니다. 운영자 메뉴에서 시험지를 추가한 뒤 다시 시도해주세요.</div>
+            <div class="alert warning">등록된 기출 회차가 없습니다. 운영자 메뉴에서 시험지를 추가한 뒤 다시 시도해주세요.</div>
         <% } %>
-        <form method="post" class="form-grid">
-            <div>
-                <label for="paperId">응시할 시험</label>
+        <form method="post" class="exam-start-form">
+            <label class="filter-field">
+                <span>응시할 시험</span>
                 <select id="paperId" name="paperId" class="paper-select" required <%= available == 0 ? "disabled" : "" %>>
                     <% for (ExamPaper paper : papers) { %>
                         <option value="<%= paper.getPaperId() %>"><%= paper.getExamYear() %>년 <%= paper.getExamRound() %>회 - <%= paper.getName() %></option>
                     <% } %>
                 </select>
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:12px;">
+            </label>
+            <div class="form-actions">
                 <a href="${pageContext.request.contextPath}/papers/quick" class="btn btn-ghost">회차 목록</a>
                 <button type="submit" class="btn btn-primary" <%= available == 0 ? "disabled" : "" %>>세션 시작</button>
             </div>

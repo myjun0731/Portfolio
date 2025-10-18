@@ -23,8 +23,11 @@
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
 <main class="app-shell">
     <section class="page-hero">
-        <h1>📝 오답 노트</h1>
-        <p class="subtitle">최근 오답 문항을 다시 풀고 개인 메모를 남겨 복습 루틴을 자동화하세요.</p>
+        <div class="page-hero__lede">
+            <span class="badge soft">Review Center</span>
+            <h1>📝 오답 노트</h1>
+            <p class="subtitle">최근 오답 문항을 다시 풀고 개인 메모를 남겨 복습 루틴을 자동화하세요.</p>
+        </div>
     </section>
 
     <section class="app-section">
@@ -37,29 +40,29 @@
         <% if (retry.isEmpty()) { %>
             <div class="alert warning">최근 오답이 없습니다. CBT를 응시하고 틀린 문항을 자동으로 모아보세요.</div>
         <% } else { %>
-            <div class="card-grid">
+            <div class="question-collection__list">
                 <% for (Question q : retry) { %>
-                    <div class="card">
-                        <h3 style="font-size:18px; line-height:1.5;"><%= HtmlUtil.escape(q.getStem()) %></h3>
-                        <ol style="margin:16px 0 0 18px; padding:0;">
+                    <article class="review-card">
+                        <h3><%= HtmlUtil.escape(q.getStem()) %></h3>
+                        <ol>
                             <% for (QOption opt : q.getOptions()) { %>
-                                <li style="margin-bottom:6px;"> <%= HtmlUtil.escape(opt.getText()) %></li>
+                                <li><%= HtmlUtil.escape(opt.getText()) %></li>
                             <% } %>
                         </ol>
-                        <form method="post" action="${pageContext.request.contextPath}/study/review" class="form-grid" style="margin-top:16px;">
+                        <form method="post" action="${pageContext.request.contextPath}/study/review" class="review-form">
                             <input type="hidden" name="qid" value="<%= q.getQId() %>">
-                            <label style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--text-muted);">
+                            <label class="review-flag">
                                 <input type="checkbox" name="star" value="Y"> 즐겨찾기
                             </label>
-                            <div>
-                                <label for="memo-<%= q.getQId() %>">메모</label>
-                                <textarea id="memo-<%= q.getQId() %>" name="memo" placeholder="학습 노트를 남겨보세요." style="min-height:96px;"></textarea>
-                            </div>
-                            <div style="display:flex; justify-content:flex-end;">
+                            <label class="filter-field">
+                                <span>메모</span>
+                                <textarea id="memo-<%= q.getQId() %>" name="memo" placeholder="학습 노트를 남겨보세요."></textarea>
+                            </label>
+                            <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">메모 저장</button>
                             </div>
                         </form>
-                    </div>
+                    </article>
                 <% } %>
             </div>
         <% } %>

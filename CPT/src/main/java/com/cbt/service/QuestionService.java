@@ -1,6 +1,7 @@
 package com.cbt.service;
 
 import com.cbt.model.Question;
+import com.cbt.model.Subject;
 import com.cbt.model.Tag;
 import com.cbt.model.Unit;
 import com.cbt.store.AppDataStore;
@@ -102,6 +103,10 @@ public class QuestionService {
 
     public List<Tag> getTags() {
         return new ArrayList<>(store.getTags());
+    }
+
+    public List<Subject> getSubjects() {
+        return new ArrayList<>(store.getSubjects());
     }
 
     private boolean empty(String value) {

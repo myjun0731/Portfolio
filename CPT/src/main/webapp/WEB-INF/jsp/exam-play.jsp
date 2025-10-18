@@ -17,37 +17,39 @@
 <body class="exam-body">
 <div class="exam-shell">
     <aside class="exam-sidebar">
-        <div>
+        <section class="exam-sidebar__section">
             <h2>남은 시간</h2>
             <div class="timer-display" id="timer"></div>
             <div class="session-info">세션 ID <%= sessionBean.getSessId() %></div>
-        </div>
+        </section>
         <div class="exam-warning" id="warning" style="display:none;">남은 시간 알림</div>
         <div class="exam-warning offline" id="offline" style="display:none;">오프라인 상태입니다. 연결 복구 후 자동 저장됩니다.</div>
-        <div>
+        <section class="exam-sidebar__section">
             <h2>문항 내비게이터</h2>
-            <div class="exam-badges" id="navigator">
+            <div class="exam-badges" id="navigator" role="list">
                 <% int index = 1; for (Question q : questions) { %>
-                    <div class="exam-badge" data-qid="<%= q.getQId() %>" onclick="goQuestion(<%= index - 1 %>)"><%= index++ %></div>
+                    <button type="button" class="exam-badge" data-qid="<%= q.getQId() %>" onclick="goQuestion(<%= index - 1 %>)" role="listitem">Q<%= index++ %></button>
                 <% } %>
             </div>
-        </div>
-        <div class="exam-submit">
-            <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit">
+        </section>
+        <section class="exam-sidebar__section">
+            <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit" class="exam-submit">
                 <input type="hidden" name="sid" value="<%= sessionBean.getSessId() %>">
-                <button type="submit" class="btn btn-primary" style="width:100%;">시험 제출</button>
+                <button type="submit" class="btn btn-primary">시험 제출</button>
             </form>
-        </div>
+        </section>
     </aside>
 
     <main class="exam-main">
         <% int idx = 0; for (Question q : questions) { idx++; %>
             <article class="exam-question" data-index="<%= idx - 1 %>">
-                <header>
-                    <h2>Q<%= idx %>. <%= HtmlUtil.escape(q.getStem()) %></h2>
-                    <div class="meta"><%= q.getExamYear() %>년 <%= q.getExamRound() %>회 · 난이도 <%= q.getDiff() %>
-                        <span class="flag-toggle" onclick="toggleFlag(<%= q.getQId() %>); event.stopPropagation();">🔖</span>
+                <header class="exam-question__header">
+                    <div class="exam-question__meta">
+                        <span class="badge soft">Q<%= idx %></span>
+                        <span class="meta"><%= q.getExamYear() %>년 <%= q.getExamRound() %>회 · 난이도 <%= q.getDiff() %></span>
+                        <button type="button" class="flag-toggle" onclick="toggleFlag(<%= q.getQId() %>);">🔖</button>
                     </div>
+                    <h2><%= HtmlUtil.escape(q.getStem()) %></h2>
                 </header>
                 <section class="option-list">
                     <% for (QOption opt : q.getOptions()) { %>

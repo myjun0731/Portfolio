@@ -11,7 +11,8 @@
             <span>Competency driven 테스트 허브</span>
         </div>
     </div>
-    <nav class="app-nav">
+    <button class="app-nav__toggle" type="button" aria-expanded="false" aria-controls="globalNav">메뉴</button>
+    <nav class="app-nav" id="globalNav">
         <a href="${pageContext.request.contextPath}/main" class="app-nav__link<%= "dashboard".equals(activeNav) ? " is-active" : "" %>">대시보드</a>
         <a href="${pageContext.request.contextPath}/questions" class="app-nav__link<%= "questions".equals(activeNav) ? " is-active" : "" %>">문항 탐색</a>
         <a href="${pageContext.request.contextPath}/papers/quick" class="app-nav__link<%= "papers".equals(activeNav) ? " is-active" : "" %>">연·회차</a>
@@ -28,3 +29,16 @@
         <% } %>
     </div>
 </header>
+<script>
+    (function () {
+        const toggle = document.currentScript.previousElementSibling.querySelector('.app-nav__toggle');
+        const nav = document.getElementById('globalNav');
+        if (!toggle || !nav) {
+            return;
+        }
+        toggle.addEventListener('click', () => {
+            const open = nav.classList.toggle('is-open');
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    })();
+</script>

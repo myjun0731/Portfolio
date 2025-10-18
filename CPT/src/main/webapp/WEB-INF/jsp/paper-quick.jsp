@@ -17,8 +17,11 @@
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
 <main class="app-shell">
     <section class="page-hero">
-        <h1>🗂 연·회차 바로가기</h1>
-        <p class="subtitle">사전 구성된 CBT 시험지를 선택해 동일 시드로 즉시 응시하거나 시험 정보를 검토하세요.</p>
+        <div class="page-hero__lede">
+            <span class="badge soft">Paper Library</span>
+            <h1>🗂 연·회차 바로가기</h1>
+            <p class="subtitle">사전 구성된 CBT 시험지를 선택해 동일 시드로 즉시 응시하거나 시험 정보를 검토하세요.</p>
+        </div>
     </section>
 
     <section class="app-section">
@@ -33,24 +36,27 @@
             </div>
         </div>
         <% if (papers != null && !papers.isEmpty()) { %>
-            <div class="card-grid">
+            <div class="paper-board">
                 <% for (ExamPaper paper : papers) { %>
-                    <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <article class="paper-card">
+                        <div class="paper-card__header">
                             <span class="badge"><%= HtmlUtil.escape(paper.getMode()) %> 모드</span>
-                            <span class="meta">ID: <%= paper.getPaperId() %></span>
+                            <span class="meta">ID <%= paper.getPaperId() %></span>
                         </div>
-                        <h3 style="margin-top:18px; font-size:21px;"><%= HtmlUtil.escape(paper.getName()) %></h3>
-                        <p class="meta" style="margin-top:10px;">총 <strong><%= paper.getQuestionCount() %></strong> 문항 · 제한시간 <strong><%= paper.getTimeLimitMin() %>분</strong></p>
-                        <p class="meta" style="margin-top:6px;">출제년도 <%= paper.getExamYear() %>년 / <%= paper.getExamRound() %>회</p>
+                        <h3 class="paper-card__title"><%= HtmlUtil.escape(paper.getName()) %></h3>
+                        <ul class="paper-card__meta">
+                            <li>총 문항 <strong><%= paper.getQuestionCount() %></strong>개</li>
+                            <li>제한시간 <strong><%= paper.getTimeLimitMin() %></strong>분</li>
+                            <li>출제년도 <strong><%= paper.getExamYear() %></strong>년 / <strong><%= paper.getExamRound() %></strong>회</li>
+                        </ul>
                         <% if (paper.isHasMissingQuestions()) { %>
-                            <div class="alert warning" style="margin-top:16px;">일부 문항이 누락되어 대체 문항이 자동 매핑됩니다.</div>
+                            <p class="paper-card__alert">일부 문항이 누락되어 대체 문항이 자동 매핑됩니다.</p>
                         <% } %>
-                        <form method="post" action="${pageContext.request.contextPath}/exam/start" style="margin-top:20px;">
+                        <form method="post" action="${pageContext.request.contextPath}/exam/start" class="paper-card__actions">
                             <input type="hidden" name="paperId" value="<%= paper.getPaperId() %>">
-                            <button type="submit" class="btn btn-primary" style="width:100%;">바로 응시</button>
+                            <button type="submit" class="btn btn-primary">바로 응시</button>
                         </form>
-                    </div>
+                    </article>
                 <% } %>
             </div>
         <% } else { %>
