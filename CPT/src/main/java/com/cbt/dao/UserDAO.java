@@ -51,19 +51,33 @@ public class UserDAO {
     public void logAudit(int userId, String action, String target, String ip) throws SQLException {
         String sql = "INSERT INTO AUDIT (AUDIT_ID, USER_ID, ACTION, TARGET, IP) " +
                      "VALUES (SEQ_AUDIT.NEXTVAL, ?, ?, ?, ?)";
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        try {
-            conn = DBUtil.getConnection();
-            pstmt = conn.prepareStatement(sql);
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             pstmt.setString(2, action);
             pstmt.setString(3, target);
             pstmt.setString(4, ip);
             pstmt.executeUpdate();
-        } finally {
-            DBUtil.close(pstmt);
-            DBUtil.close(conn);
+        } catch (SQLException ex) {
+            if (isIgnorableAuditFailure(ex)) {
+                System.err.println("[AUDIT] 로깅을 건너뜁니다: " + ex.getMessage());
+                return;
+            }
+            throw ex;
         }
+    }
+
+    private boolean isIgnorableAuditFailure(SQLException ex) {
+        SQLException current = ex;
+        while (current != null) {
+            int errorCode = current.getErrorCode();
+            // ORA-00903(903): invalid table name, ORA-00942(942): table or view does not exist,
+            // ORA-02289(2289): sequence does not exist
+            if (errorCode == 903 || errorCode == 942 || errorCode == 2289) {
+                return true;
+            }
+            current = current.getNextException();
+        }
+        return false;
     }
 }
