@@ -146,7 +146,7 @@ public class ForEachTag extends SimpleTagSupport {
         return list;
     }
 
-    private static class LoopStatus {
+    public static class LoopStatus {
         private final int begin;
         private final int end;
         private final int step;
