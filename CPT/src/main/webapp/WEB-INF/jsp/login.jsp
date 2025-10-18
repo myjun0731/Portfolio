@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -29,11 +30,11 @@
         <h1 id="authTitle">로그인</h1>
         <p class="auth-subcopy">계정을 입력해 학습 대시보드와 CBT 기능을 이어서 진행하세요.</p>
 
-        <% if (request.getAttribute("error") != null) { %>
+        <c:if test="${not empty requestScope.error}">
             <div class="error-msg" role="alert">
-                <%= request.getAttribute("error") %>
+                <c:out value="${requestScope.error}" />
             </div>
-        <% } %>
+        </c:if>
 
         <form method="post" action="${pageContext.request.contextPath}/login" class="form-grid auth-form">
             <div class="form-field">

@@ -1,43 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.*" %>
-<%@ page import="com.cbt.model.*" %>
-<%@ page import="com.cbt.util.HtmlUtil" %>
-<%
-    List<Question> questions = (List<Question>) request.getAttribute("questions");
-    List<Unit> units = (List<Unit>) request.getAttribute("units");
-    List<Tag> tags = (List<Tag>) request.getAttribute("tags");
-    List<com.cbt.model.Subject> subjects = (List<com.cbt.model.Subject>) request.getAttribute("subjects");
-    long total = (Long) request.getAttribute("total");
-    int page = (Integer) request.getAttribute("page");
-    int size = (Integer) request.getAttribute("size");
-    int pages = (int) Math.ceil(total / (double) size);
-    String[] selectedTags = request.getParameterValues("tags");
-    Set<String> selected = new HashSet<>();
-    if (selectedTags != null) {
-        selected.addAll(Arrays.asList(selectedTags));
-    }
-    Map<Integer, List<Unit>> unitsBySubject = new HashMap<>();
-    Map<Integer, List<Unit>> unitsByParent = new HashMap<>();
-    for (Unit unit : units) {
-        unitsBySubject.computeIfAbsent(unit.getSubjectId(), k -> new ArrayList<>()).add(unit);
-        Integer parentId = unit.getParentId();
-        unitsByParent.computeIfAbsent(parentId != null ? parentId : 0, k -> new ArrayList<>()).add(unit);
-    }
-    for (List<Unit> list : unitsBySubject.values()) {
-        list.sort(Comparator.comparing(Unit::getName));
-    }
-    for (List<Unit> list : unitsByParent.values()) {
-        list.sort(Comparator.comparing(Unit::getName));
-    }
-    Integer selectedUnit = null;
-    if (request.getParameter("unit") != null && !request.getParameter("unit").isBlank()) {
-        try {
-            selectedUnit = Integer.parseInt(request.getParameter("unit"));
-        } catch (NumberFormatException ignore) {
-            selectedUnit = null;
-        }
-    }
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -85,18 +48,18 @@
                             <span>단원</span>
                             <select id="unit" name="unit">
                                 <option value="">전체</option>
-                                <% for (Unit unit : units) { %>
-                                    <option value="<%= unit.getUnitId() %>" <%= unit.getUnitId() == (selectedUnit != null ? selectedUnit : -1) ? "selected" : "" %>>
-                                        <%= HtmlUtil.escape(unit.getName()) %> (<%= unit.getNcsCode() %>)
+                                <c:forEach var="unit" items="${units}">
+                                    <option value="${unit.unitId}" <c:if test="${unit.unitId == selectedUnit}">selected</c:if>>
+                                        <c:out value="${unit.name}" /> (<c:out value="${unit.ncsCode}" />)
                                     </option>
-                                <% } %>
+                                </c:forEach>
                             </select>
                         </label>
                         <label class="filter-field">
                             <span>태그 교차 방식</span>
                             <select id="tagMode" name="tagMode">
-                                <option value="AND" <%= "OR".equalsIgnoreCase(request.getParameter("tagMode")) ? "" : "selected" %>>AND</option>
-                                <option value="OR" <%= "OR".equalsIgnoreCase(request.getParameter("tagMode")) ? "selected" : "" %>>OR</option>
+                                <option value="AND" <c:if test="${tagMode eq 'AND'}">selected</c:if>>AND</option>
+                                <option value="OR" <c:if test="${tagMode eq 'OR'}">selected</c:if>>OR</option>
                             </select>
                         </label>
                     </div>
@@ -105,12 +68,12 @@
                 <div class="filter-group">
                     <h2>태그 선택</h2>
                     <div class="chip-group">
-                        <% for (Tag tag : tags) { %>
+                        <c:forEach var="tag" items="${tags}">
                             <label class="chip">
-                                <input type="checkbox" name="tags" value="<%= tag.getTagId() %>" <%= selected.contains(String.valueOf(tag.getTagId())) ? "checked" : "" %>>
-                                <span><%= HtmlUtil.escape(tag.getName()) %></span>
+                                <input type="checkbox" name="tags" value="${tag.tagId}" <c:if test="${selectedTags contains tag.tagId}">checked</c:if>>
+                                <span><c:out value="${tag.name}" /></span>
                             </label>
-                        <% } %>
+                        </c:forEach>
                     </div>
                 </div>
 
@@ -123,38 +86,36 @@
             <div class="filter-group">
                 <h2>NCS 단원 맵</h2>
                 <ul class="unit-tree">
-                    <% if (subjects != null) { %>
-                        <% for (com.cbt.model.Subject subject : subjects) { %>
-                            <li>
-                                <span class="unit-tree__subject"><%= HtmlUtil.escape(subject.getName()) %></span>
-                                <ul>
-                                    <% for (Unit unit : unitsBySubject.getOrDefault(subject.getSubjectId(), java.util.Collections.emptyList())) { %>
-                                        <% if (unit.getParentId() == null) { %>
-                                            <li>
-                                                <a class="unit-tree__link<%= selectedUnit != null && selectedUnit == unit.getUnitId() ? " is-active" : "" %>" href="?unit=<%= unit.getUnitId() %>">
-                                                    <%= HtmlUtil.escape(unit.getName()) %>
-                                                    <span class="unit-tree__code"><%= unit.getNcsCode() %></span>
-                                                </a>
-                                                <% List<Unit> children = unitsByParent.getOrDefault(unit.getUnitId(), java.util.Collections.emptyList()); %>
-                                                <% if (!children.isEmpty()) { %>
-                                                    <ul>
-                                                        <% for (Unit child : children) { %>
-                                                            <li>
-                                                                <a class="unit-tree__link child<%= selectedUnit != null && selectedUnit == child.getUnitId() ? " is-active" : "" %>" href="?unit=<%= child.getUnitId() %>">
-                                                                    <%= HtmlUtil.escape(child.getName()) %>
-                                                                    <span class="unit-tree__code"><%= child.getNcsCode() %></span>
-                                                                </a>
-                                                            </li>
-                                                        <% } %>
-                                                    </ul>
-                                                <% } %>
-                                            </li>
-                                        <% } %>
-                                    <% } %>
-                                </ul>
-                            </li>
-                        <% } %>
-                    <% } %>
+                    <c:forEach var="subject" items="${subjects}">
+                        <li>
+                            <span class="unit-tree__subject"><c:out value="${subject.name}" /></span>
+                            <ul>
+                                <c:forEach var="unit" items="${unitsBySubject[subject.subjectId]}">
+                                    <c:if test="${unit.parentId == null}">
+                                        <li>
+                                            <a class="unit-tree__link<c:if test="${selectedUnit == unit.unitId}"> is-active</c:if>" href="?unit=${unit.unitId}">
+                                                <c:out value="${unit.name}" />
+                                                <span class="unit-tree__code"><c:out value="${unit.ncsCode}" /></span>
+                                            </a>
+                                            <c:set var="children" value="${unitsByParent[unit.unitId]}" />
+                                            <c:if test="${not empty children}">
+                                                <ul>
+                                                    <c:forEach var="child" items="${children}">
+                                                        <li>
+                                                            <a class="unit-tree__link child<c:if test="${selectedUnit == child.unitId}"> is-active</c:if>" href="?unit=${child.unitId}">
+                                                                <c:out value="${child.name}" />
+                                                                <span class="unit-tree__code"><c:out value="${child.ncsCode}" /></span>
+                                                            </a>
+                                                        </li>
+                                                    </c:forEach>
+                                                </ul>
+                                            </c:if>
+                                        </li>
+                                    </c:if>
+                                </c:forEach>
+                            </ul>
+                        </li>
+                    </c:forEach>
                 </ul>
             </div>
         </aside>
@@ -163,57 +124,67 @@
             <header class="question-collection__header">
                 <div>
                     <h2>검색 결과</h2>
-                    <p class="subtitle">총 <%= total %>문항 · 페이지당 <%= size %>문항</p>
+                    <p class="subtitle">총 <c:out value="${total}" />문항 · 페이지당 <c:out value="${size}" />문항</p>
                 </div>
-                <div class="pill">페이지 <%= page + 1 %> / <%= Math.max(pages, 1) %></div>
+                <c:set var="displayPages" value="1" />
+                <c:if test="${totalPages > 0}">
+                    <c:set var="displayPages" value="${totalPages}" />
+                </c:if>
+                <div class="pill">페이지 ${page + 1} / ${displayPages}</div>
             </header>
 
-            <% if (questions.isEmpty()) { %>
-                <div class="alert warning">조건에 맞는 문항이 없습니다. 필터를 완화해 다시 시도해주세요.</div>
-            <% } else { %>
-                <div class="question-collection__list">
-                    <% for (Question q : questions) { %>
-                        <article class="question-card">
-                            <header>
-                                <div class="question-card__badge">
-                                    <span class="badge soft"><%= q.getExamYear() != null ? q.getExamYear() + "년" : "미상" %> <%= q.getExamRound() != null ? q.getExamRound() + "회" : "" %></span>
-                                    <span class="meta">난이도 <strong><%= q.getDiff() %></strong> · 유형 <%= q.getType() %></span>
+            <c:choose>
+                <c:when test="${empty questions}">
+                    <div class="alert warning">조건에 맞는 문항이 없습니다. 필터를 완화해 다시 시도해주세요.</div>
+                </c:when>
+                <c:otherwise>
+                    <div class="question-collection__list">
+                        <c:forEach var="question" items="${questions}">
+                            <article class="question-card">
+                                <header>
+                                    <div class="question-card__badge">
+                                        <span class="badge soft"><c:out value="${question.examYear}" default="미상" />년 <c:out value="${question.examRound}" default="" />회</span>
+                                        <span class="meta">난이도 <strong><c:out value="${question.diff}" /></strong> · 유형 <c:out value="${question.type}" /></span>
+                                    </div>
+                                    <h2>[<c:out value="${question.subjectName}" />] <c:out value="${question.unitName}" /></h2>
+                                </header>
+                                <div class="tag-cloud">
+                                    <c:forEach var="tag" items="${question.tags}">
+                                        <span class="tag-pill"><c:out value="${tag.name}" /></span>
+                                    </c:forEach>
                                 </div>
-                                <h2>[<%= HtmlUtil.escape(q.getSubjectName()) %>] <%= HtmlUtil.escape(q.getUnitName()) %></h2>
-                            </header>
-                            <div class="tag-cloud">
-                                <% for (Tag tag : q.getTags()) { %>
-                                    <span class="tag-pill"><%= HtmlUtil.escape(tag.getName()) %></span>
-                                <% } %>
-                            </div>
-                            <details class="question-preview">
-                                <summary>문항 미리보기</summary>
-                                <div class="question-preview__body">
-                                    <p><%= HtmlUtil.escape(q.getStem()) %></p>
-                                    <ol>
-                                        <% for (QOption opt : q.getOptions()) { %>
-                                            <li><%= HtmlUtil.escape(opt.getText()) %></li>
-                                        <% } %>
-                                    </ol>
-                                    <p class="meta">* 답안과 해설은 권한 보유자에게만 표시됩니다.</p>
-                                </div>
-                            </details>
-                        </article>
-                    <% } %>
-                </div>
-            <% } %>
+                                <details class="question-preview">
+                                    <summary>문항 미리보기</summary>
+                                    <div class="question-preview__body">
+                                        <p><c:out value="${question.stem}" /></p>
+                                        <ol>
+                                            <c:forEach var="opt" items="${question.options}">
+                                                <li><c:out value="${opt.text}" /></li>
+                                            </c:forEach>
+                                        </ol>
+                                        <p class="meta">* 답안과 해설은 권한 보유자에게만 표시됩니다.</p>
+                                    </div>
+                                </details>
+                            </article>
+                        </c:forEach>
+                    </div>
+                </c:otherwise>
+            </c:choose>
 
-            <% if (pages > 1) { %>
+            <c:if test="${totalPages > 1}">
                 <div class="pagination">
-                    <% for (int i = 0; i < pages; i++) { %>
-                        <% if (i == page) { %>
-                            <span class="active"><%= (i + 1) %></span>
-                        <% } else { %>
-                            <a href="?page=<%= i %>"><%= (i + 1) %></a>
-                        <% } %>
-                    <% } %>
+                    <c:forEach begin="0" end="${totalPages - 1}" var="idx">
+                        <c:choose>
+                            <c:when test="${idx == page}">
+                                <span class="active">${idx + 1}</span>
+                            </c:when>
+                            <c:otherwise>
+                                <a href="?page=${idx}">${idx + 1}</a>
+                            </c:otherwise>
+                        </c:choose>
+                    </c:forEach>
                 </div>
-            <% } %>
+            </c:if>
         </section>
     </div>
 </main>

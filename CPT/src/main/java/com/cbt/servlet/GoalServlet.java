@@ -12,6 +12,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.NavigableMap;
 
 @WebServlet("/study/goal")
 public class GoalServlet extends HttpServlet {
@@ -26,8 +28,16 @@ public class GoalServlet extends HttpServlet {
             return;
         }
         GoalPlan goal = studyService.getGoal(user.getUserId());
+        int targetScore = goal != null ? goal.getTargetScore() : 70;
+        LocalDate examDate = goal != null ? goal.getExamDate() : LocalDate.now().plusMonths(1);
+        int dailyCount = goal != null ? goal.getDailyQuestionCount() : 20;
         req.setAttribute("goal", goal);
-        req.setAttribute("history", studyService.getScoreHistory(user.getUserId()));
+        req.setAttribute("targetScore", targetScore);
+        req.setAttribute("goalExamDate", examDate);
+        req.setAttribute("dailyCount", dailyCount);
+        NavigableMap<java.time.LocalDate, Integer> history = studyService.getScoreHistory(user.getUserId());
+        req.setAttribute("history", history);
+        req.setAttribute("historyEntries", new ArrayList<>(history.entrySet()));
         req.setAttribute("activeNav", "goal");
         req.getRequestDispatcher("/WEB-INF/jsp/study-goal.jsp").forward(req, resp);
     }

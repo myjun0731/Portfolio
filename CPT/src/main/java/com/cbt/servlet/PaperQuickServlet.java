@@ -24,6 +24,7 @@ public class PaperQuickServlet extends HttpServlet {
                         .thenComparing(ExamPaper::getExamRound, Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
         req.setAttribute("papers", papers);
+        req.setAttribute("paperCount", papers.size());
         req.setAttribute("activeNav", "papers");
         req.getRequestDispatcher("/WEB-INF/jsp/paper-quick.jsp").forward(req, resp);
     }

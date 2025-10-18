@@ -1,11 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.*" %>
-<%@ page import="com.cbt.model.*" %>
-<%@ page import="com.cbt.util.HtmlUtil" %>
-<%
-    List<ExamPaper> papers = (List<ExamPaper>) request.getAttribute("papers");
-    int totalPapers = papers != null ? papers.size() : 0;
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -31,37 +25,40 @@
                 <p class="subtitle">시험 모드는 "G"(기출) 기준으로 구성되었습니다. 응시 전에 결측 여부를 확인하세요.</p>
             </div>
             <div class="section-actions">
-                <span class="pill">총 <%= totalPapers %>회차</span>
+                <span class="pill">총 <c:out value="${paperCount}" />회차</span>
                 <a class="btn btn-ghost" href="${pageContext.request.contextPath}/questions">문항 탐색</a>
             </div>
         </div>
-        <% if (papers != null && !papers.isEmpty()) { %>
-            <div class="paper-board">
-                <% for (ExamPaper paper : papers) { %>
-                    <article class="paper-card">
-                        <div class="paper-card__header">
-                            <span class="badge"><%= HtmlUtil.escape(paper.getMode()) %> 모드</span>
-                            <span class="meta">ID <%= paper.getPaperId() %></span>
-                        </div>
-                        <h3 class="paper-card__title"><%= HtmlUtil.escape(paper.getName()) %></h3>
-                        <ul class="paper-card__meta">
-                            <li>총 문항 <strong><%= paper.getQuestionCount() %></strong>개</li>
-                            <li>제한시간 <strong><%= paper.getTimeLimitMin() %></strong>분</li>
-                            <li>출제년도 <strong><%= paper.getExamYear() %></strong>년 / <strong><%= paper.getExamRound() %></strong>회</li>
-                        </ul>
-                        <% if (paper.isHasMissingQuestions()) { %>
-                            <p class="paper-card__alert">일부 문항이 누락되어 대체 문항이 자동 매핑됩니다.</p>
-                        <% } %>
-                        <form method="post" action="${pageContext.request.contextPath}/exam/start" class="paper-card__actions">
-                            <input type="hidden" name="paperId" value="<%= paper.getPaperId() %>">
-                            <button type="submit" class="btn btn-primary">바로 응시</button>
-                        </form>
-                    </article>
-                <% } %>
-            </div>
-        <% } else { %>
-            <div class="alert warning">등록된 기출 시험지가 없습니다. 운영자 모드에서 회차를 추가해주세요.</div>
-        <% } %>
+        <c:choose>
+            <c:when test="${not empty papers}">
+                <div class="paper-board">
+                    <c:forEach var="paper" items="${papers}">
+                        <article class="paper-card">
+                            <div class="paper-card__header">
+                                <span class="badge"><c:out value="${paper.mode}" /> 모드</span>
+                                <span class="meta">ID <c:out value="${paper.paperId}" /></span>
+                            </div>
+                            <h3 class="paper-card__title"><c:out value="${paper.name}" /></h3>
+                            <ul class="paper-card__meta">
+                                <li>총 문항 <strong><c:out value="${paper.questionCount}" /></strong>개</li>
+                                <li>제한시간 <strong><c:out value="${paper.timeLimitMin}" /></strong>분</li>
+                                <li>출제년도 <strong><c:out value="${paper.examYear}" /></strong>년 / <strong><c:out value="${paper.examRound}" /></strong>회</li>
+                            </ul>
+                            <c:if test="${paper.hasMissingQuestions}">
+                                <p class="paper-card__alert">일부 문항이 누락되어 대체 문항이 자동 매핑됩니다.</p>
+                            </c:if>
+                            <form method="post" action="${pageContext.request.contextPath}/exam/start" class="paper-card__actions">
+                                <input type="hidden" name="paperId" value="${paper.paperId}">
+                                <button type="submit" class="btn btn-primary">바로 응시</button>
+                            </form>
+                        </article>
+                    </c:forEach>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="alert warning">등록된 기출 시험지가 없습니다. 운영자 모드에서 회차를 추가해주세요.</div>
+            </c:otherwise>
+        </c:choose>
     </section>
 </main>
 </body>

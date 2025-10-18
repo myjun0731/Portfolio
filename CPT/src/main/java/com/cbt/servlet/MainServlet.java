@@ -33,10 +33,12 @@ public class MainServlet extends HttpServlet {
             request.setAttribute("tagTotal", store.getTags().size());
             NavigableMap<java.time.LocalDate, Integer> history = store.getScoreHistory(1);
             request.setAttribute("scoreHistory", history);
+            request.setAttribute("scoreHistoryEntries", new java.util.ArrayList<>(history.entrySet()));
             if (!history.isEmpty()) {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M월 d일");
                 request.setAttribute("latestScoreLabel",
                         history.lastKey().format(formatter) + " · " + history.lastEntry().getValue() + "점");
+                request.setAttribute("latestScore", history.lastEntry().getValue());
             }
             request.setAttribute("activeNav", "dashboard");
             request.getRequestDispatcher("/WEB-INF/jsp/main.jsp").forward(request, response);

@@ -28,6 +28,8 @@ public class ExamResultServlet extends HttpServlet {
         req.setAttribute("report", report);
         req.setAttribute("responses", responses);
         req.setAttribute("questions", examService.loadQuestionsForSession(report.getSession()));
+        req.setAttribute("unitAccuracies", report.getUnitAccuracies());
+        req.setAttribute("tagWeaknesses", report.getTagWeaknesses());
         req.setAttribute("activeNav", "dashboard");
         req.getRequestDispatcher("/WEB-INF/jsp/exam-result.jsp").forward(req, resp);
     }

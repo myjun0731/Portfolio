@@ -1,17 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.*" %>
-<%@ page import="com.cbt.model.*" %>
-<%@ page import="com.cbt.util.HtmlUtil" %>
-<%
-    List<Question> retry = (List<Question>) request.getAttribute("retry");
-    List<WrongNote> wrongNotes = (List<WrongNote>) request.getAttribute("wrongNotes");
-    if (retry == null) {
-        retry = Collections.emptyList();
-    }
-    if (wrongNotes == null) {
-        wrongNotes = Collections.emptyList();
-    }
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -34,38 +23,41 @@
         <div class="section-headline">
             <h2>오답만 다시 풀기</h2>
             <div class="section-actions">
-                <span class="pill">최근 오답 <%= retry.size() %>문항</span>
+                <span class="pill">최근 오답 <c:out value="${fn:length(retry)}" />문항</span>
             </div>
         </div>
-        <% if (retry.isEmpty()) { %>
-            <div class="alert warning">최근 오답이 없습니다. CBT를 응시하고 틀린 문항을 자동으로 모아보세요.</div>
-        <% } else { %>
-            <div class="question-collection__list">
-                <% for (Question q : retry) { %>
-                    <article class="review-card">
-                        <h3><%= HtmlUtil.escape(q.getStem()) %></h3>
-                        <ol>
-                            <% for (QOption opt : q.getOptions()) { %>
-                                <li><%= HtmlUtil.escape(opt.getText()) %></li>
-                            <% } %>
-                        </ol>
-                        <form method="post" action="${pageContext.request.contextPath}/study/review" class="review-form">
-                            <input type="hidden" name="qid" value="<%= q.getQId() %>">
-                            <label class="review-flag">
-                                <input type="checkbox" name="star" value="Y"> 즐겨찾기
-                            </label>
-                            <label class="filter-field">
-                                <span>메모</span>
-                                <textarea id="memo-<%= q.getQId() %>" name="memo" placeholder="학습 노트를 남겨보세요."></textarea>
-                            </label>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">메모 저장</button>
-                            </div>
-                        </form>
-                    </article>
-                <% } %>
-            </div>
-        <% } %>
+        <c:choose>
+            <c:when test="${empty retry}">
+                <div class="alert warning">최근 오답이 없습니다. CBT를 응시하고 틀린 문항을 자동으로 모아보세요.</div>
+            </c:when>
+            <c:otherwise>
+                <div class="question-collection__list">
+                    <c:forEach var="question" items="${retry}">
+                        <article class="review-card">
+                            <h3><c:out value="${question.stem}" /></h3>
+                            <ol>
+                                <c:forEach var="opt" items="${question.options}">
+                                    <li><c:out value="${opt.text}" /></li>
+                                </c:forEach>
+                            </ol>
+                            <form method="post" action="${pageContext.request.contextPath}/study/review" class="review-form">
+                                <input type="hidden" name="qid" value="${question.qId}">
+                                <label class="review-flag">
+                                    <input type="checkbox" name="star" value="Y"> 즐겨찾기
+                                </label>
+                                <label class="filter-field">
+                                    <span>메모</span>
+                                    <textarea id="memo-${question.qId}" name="memo" placeholder="학습 노트를 남겨보세요."></textarea>
+                                </label>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">메모 저장</button>
+                                </div>
+                            </form>
+                        </article>
+                    </c:forEach>
+                </div>
+            </c:otherwise>
+        </c:choose>
     </section>
 
     <section class="app-section compact">
@@ -73,14 +65,18 @@
             <h2>누적 기록</h2>
         </div>
         <table class="table">
+            <thead>
             <tr><th>문항 ID</th><th>마지막 오답일</th><th>오답 횟수</th></tr>
-            <% for (WrongNote note : wrongNotes) { %>
+            </thead>
+            <tbody>
+            <c:forEach var="note" items="${wrongNotes}">
                 <tr>
-                    <td><%= note.getQuestionId() %></td>
-                    <td><%= note.getLastWrongAt() %></td>
-                    <td><%= note.getAttempts() %></td>
+                    <td><c:out value="${note.questionId}" /></td>
+                    <td><c:out value="${note.lastWrongAt}" /></td>
+                    <td><c:out value="${note.attempts}" /></td>
                 </tr>
-            <% } %>
+            </c:forEach>
+            </tbody>
         </table>
     </section>
 </main>

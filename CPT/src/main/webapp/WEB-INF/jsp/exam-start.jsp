@@ -1,13 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.*" %>
-<%@ page import="com.cbt.model.*" %>
-<%
-    List<ExamPaper> papers = (List<ExamPaper>) request.getAttribute("papers");
-    if (papers == null) {
-        papers = java.util.Collections.emptyList();
-    }
-    int available = papers.size();
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -30,7 +23,7 @@
         <div class="section-headline">
             <h2>세션 선택</h2>
             <div class="section-actions">
-                <span class="pill">선택 가능 <%= available %>회차</span>
+                <span class="pill">선택 가능 <c:out value="${paperCount}" />회차</span>
             </div>
         </div>
         <div class="alert exam-guide">
@@ -40,21 +33,21 @@
                 <li>시험 중 세션을 한 번까지 재개할 수 있으며, 마지막으로 접속한 탭만 유효합니다.</li>
             </ul>
         </div>
-        <% if (available == 0) { %>
+        <c:if test="${paperCount == 0}">
             <div class="alert warning">등록된 기출 회차가 없습니다. 운영자 메뉴에서 시험지를 추가한 뒤 다시 시도해주세요.</div>
-        <% } %>
+        </c:if>
         <form method="post" class="exam-start-form">
             <label class="filter-field">
                 <span>응시할 시험</span>
-                <select id="paperId" name="paperId" class="paper-select" required <%= available == 0 ? "disabled" : "" %>>
-                    <% for (ExamPaper paper : papers) { %>
-                        <option value="<%= paper.getPaperId() %>"><%= paper.getExamYear() %>년 <%= paper.getExamRound() %>회 - <%= paper.getName() %></option>
-                    <% } %>
+                <select id="paperId" name="paperId" class="paper-select" required <c:if test="${paperCount == 0}">disabled</c:if>>
+                    <c:forEach var="paper" items="${papers}">
+                        <option value="${paper.paperId}"><c:out value="${paper.examYear}" />년 <c:out value="${paper.examRound}" />회 - <c:out value="${paper.name}" /></option>
+                    </c:forEach>
                 </select>
             </label>
             <div class="form-actions">
                 <a href="${pageContext.request.contextPath}/papers/quick" class="btn btn-ghost">회차 목록</a>
-                <button type="submit" class="btn btn-primary" <%= available == 0 ? "disabled" : "" %>>세션 시작</button>
+                <button type="submit" class="btn btn-primary" <c:if test="${paperCount == 0}">disabled</c:if>>세션 시작</button>
             </div>
         </form>
     </section>

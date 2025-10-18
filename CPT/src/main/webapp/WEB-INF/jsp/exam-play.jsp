@@ -1,12 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.*" %>
-<%@ page import="com.cbt.model.*" %>
-<%@ page import="com.cbt.util.HtmlUtil" %>
-<%
-    ExamSession sessionBean = (ExamSession) request.getAttribute("session");
-    List<Question> questions = (List<Question>) request.getAttribute("questions");
-    long remaining = (Long) request.getAttribute("remaining");
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -20,53 +14,53 @@
         <section class="exam-sidebar__section">
             <h2>남은 시간</h2>
             <div class="timer-display" id="timer"></div>
-            <div class="session-info">세션 ID <%= sessionBean.getSessId() %></div>
+            <div class="session-info">세션 ID <c:out value="${examSession.sessId}" /></div>
         </section>
         <div class="exam-warning" id="warning" style="display:none;">남은 시간 알림</div>
         <div class="exam-warning offline" id="offline" style="display:none;">오프라인 상태입니다. 연결 복구 후 자동 저장됩니다.</div>
         <section class="exam-sidebar__section">
             <h2>문항 내비게이터</h2>
             <div class="exam-badges" id="navigator" role="list">
-                <% int index = 1; for (Question q : questions) { %>
-                    <button type="button" class="exam-badge" data-qid="<%= q.getQId() %>" onclick="goQuestion(<%= index - 1 %>)" role="listitem">Q<%= index++ %></button>
-                <% } %>
+                <c:forEach var="question" items="${questions}" varStatus="loop">
+                    <button type="button" class="exam-badge" data-qid="${question.qId}" onclick="goQuestion(${loop.index})" role="listitem">Q${loop.index + 1}</button>
+                </c:forEach>
             </div>
         </section>
         <section class="exam-sidebar__section">
             <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit" class="exam-submit">
-                <input type="hidden" name="sid" value="<%= sessionBean.getSessId() %>">
+                <input type="hidden" name="sid" value="${examSession.sessId}">
                 <button type="submit" class="btn btn-primary">시험 제출</button>
             </form>
         </section>
     </aside>
 
     <main class="exam-main">
-        <% int idx = 0; for (Question q : questions) { idx++; %>
-            <article class="exam-question" data-index="<%= idx - 1 %>">
+        <c:forEach var="question" items="${questions}" varStatus="loop">
+            <article class="exam-question" data-index="${loop.index}" <c:if test="${not loop.first}">style="display:none;"</c:if>>
                 <header class="exam-question__header">
                     <div class="exam-question__meta">
-                        <span class="badge soft">Q<%= idx %></span>
-                        <span class="meta"><%= q.getExamYear() %>년 <%= q.getExamRound() %>회 · 난이도 <%= q.getDiff() %></span>
-                        <button type="button" class="flag-toggle" onclick="toggleFlag(<%= q.getQId() %>);">🔖</button>
+                        <span class="badge soft">Q${loop.index + 1}</span>
+                        <span class="meta"><c:out value="${question.examYear}" default="미상" />년 <c:out value="${question.examRound}" default="" />회 · 난이도 <c:out value="${question.diff}" /></span>
+                        <button type="button" class="flag-toggle" onclick="toggleFlag(${question.qId});">🔖</button>
                     </div>
-                    <h2><%= HtmlUtil.escape(q.getStem()) %></h2>
+                    <h2><c:out value="${question.stem}" /></h2>
                 </header>
                 <section class="option-list">
-                    <% for (QOption opt : q.getOptions()) { %>
+                    <c:forEach var="option" items="${question.options}">
                         <label>
-                            <input type="radio" name="q-<%= q.getQId() %>" value="<%= opt.getOptNo() %>" <%= opt.isActive() ? "" : "disabled" %>>
-                            <span><%= HtmlUtil.escape(opt.getText()) %></span>
+                            <input type="radio" name="q-${question.qId}" value="${option.optNo}" <c:if test="${not option.active}">disabled</c:if>>
+                            <span><c:out value="${option.text}" /></span>
                         </label>
-                    <% } %>
+                    </c:forEach>
                 </section>
             </article>
-        <% } %>
+        </c:forEach>
     </main>
 </div>
 
 <script>
-    const sessionId = <%= sessionBean.getSessId() %>;
-    let remaining = <%= remaining %>;
+    const sessionId = <c:out value="${examSession.sessId}" default="0" />;
+    let remaining = <c:out value="${remaining}" default="0" />;
     const debounce = {};
     const queue = [];
     let offline = false;
@@ -109,7 +103,7 @@
         payload.append('sid', sessionId);
         payload.append('qid', qid);
         if (choice) { payload.append('choice', choice); }
-        payload.append('elapsed', <%= sessionBean.getTimeLimitMin() %> * 60 - remaining);
+        payload.append('elapsed', <c:out value="${examSession.timeLimitMin}" default="0" /> * 60 - remaining);
         payload.append('flag', flags.has(qid) ? 'Y' : 'N');
         const task = () => fetch('${pageContext.request.contextPath}/exam/answer', {
             method: 'POST',

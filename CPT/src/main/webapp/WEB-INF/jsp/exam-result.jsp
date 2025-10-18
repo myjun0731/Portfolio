@@ -1,12 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.*" %>
-<%@ page import="com.cbt.model.*" %>
-<%@ page import="com.cbt.util.HtmlUtil" %>
-<%
-    ExamReport report = (ExamReport) request.getAttribute("report");
-    List<Question> questions = (List<Question>) request.getAttribute("questions");
-    Map<Integer, ExamResp> responses = (Map<Integer, ExamResp>) request.getAttribute("responses");
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -29,23 +22,23 @@
         <div class="section-headline">
             <h2>총괄</h2>
             <div class="section-actions">
-                <span class="pill">세션 #<%= report.getSession().getSessId() %></span>
+                <span class="pill">세션 #<c:out value="${report.session.sessId}" /></span>
             </div>
         </div>
         <div class="result-grid">
             <article class="metric-card">
                 <h3>총점</h3>
-                <p class="metric-value"><%= report.getScore() %> 점</p>
-                <p class="metric-caption">정답 <%= report.getCorrectCount() %> / <%= report.getTotalQuestions() %></p>
+                <p class="metric-value"><c:out value="${report.score}" /> 점</p>
+                <p class="metric-caption">정답 <c:out value="${report.correctCount}" /> / <c:out value="${report.totalQuestions}" /></p>
             </article>
             <article class="metric-card">
                 <h3>시험 시작</h3>
-                <p class="metric-value"><%= report.getSession().getStartAt() %></p>
+                <p class="metric-value"><c:out value="${report.session.startAt}" /></p>
                 <p class="metric-caption">타이머 기준 서버 시각</p>
             </article>
             <article class="metric-card">
                 <h3>제출 완료</h3>
-                <p class="metric-value"><%= report.getSession().getSubmitAt() %></p>
+                <p class="metric-value"><c:out value="${report.session.submitAt}" /></p>
                 <p class="metric-caption">자동 제출 포함</p>
             </article>
         </div>
@@ -61,12 +54,12 @@
                 <table class="table">
                     <thead><tr><th>단원</th><th>정확도</th></tr></thead>
                     <tbody>
-                    <% for (UnitAccuracy acc : report.getUnitAccuracies()) { %>
+                    <c:forEach var="acc" items="${unitAccuracies}">
                         <tr>
-                            <td><%= HtmlUtil.escape(acc.getUnit().getName()) %></td>
-                            <td><%= acc.getAccuracy() %>%</td>
+                            <td><c:out value="${acc.unit.name}" /></td>
+                            <td><c:out value="${acc.accuracy}" />%</td>
                         </tr>
-                    <% } %>
+                    </c:forEach>
                     </tbody>
                 </table>
             </article>
@@ -75,12 +68,12 @@
                 <table class="table">
                     <thead><tr><th>태그</th><th>정확도</th></tr></thead>
                     <tbody>
-                    <% for (TagAccuracy acc : report.getTagWeaknesses()) { %>
+                    <c:forEach var="acc" items="${tagWeaknesses}">
                         <tr>
-                            <td><%= HtmlUtil.escape(acc.getTag().getName()) %></td>
-                            <td><%= acc.getAccuracy() %>%</td>
+                            <td><c:out value="${acc.tag.name}" /></td>
+                            <td><c:out value="${acc.accuracy}" />%</td>
                         </tr>
-                    <% } %>
+                    </c:forEach>
                     </tbody>
                 </table>
             </article>
@@ -94,16 +87,24 @@
         <table class="table result-table">
             <thead><tr><th>번호</th><th>문항</th><th>결과</th></tr></thead>
             <tbody>
-            <% int idx = 0; for (Question q : questions) { idx++; %>
-                <% ExamResp resp = responses.get(q.getQId()); %>
+            <c:forEach var="question" items="${questions}" varStatus="loop">
+                <c:set var="resp" value="${responses[question.qId]}" />
+                <c:set var="isCorrect" value="${resp ne null and resp.isCorrect eq 'Y'}" />
+                <c:set var="resultClass" value="status-wrong" />
+                <c:if test="${isCorrect}">
+                    <c:set var="resultClass" value="status-correct" />
+                </c:if>
                 <tr>
-                    <td><%= idx %></td>
-                    <td><%= HtmlUtil.escape(q.getStem()) %></td>
-                    <td class="<%= resp != null && "Y".equals(resp.getIsCorrect()) ? "status-correct" : "status-wrong" %>">
-                        <%= resp != null && "Y".equals(resp.getIsCorrect()) ? "정답" : "오답" %>
+                    <td>${loop.index + 1}</td>
+                    <td><c:out value="${question.stem}" /></td>
+                    <td class="${resultClass}">
+                        <c:choose>
+                            <c:when test="${isCorrect}">정답</c:when>
+                            <c:otherwise>오답</c:otherwise>
+                        </c:choose>
                     </td>
                 </tr>
-            <% } %>
+            </c:forEach>
             </tbody>
         </table>
     </section>

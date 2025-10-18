@@ -27,7 +27,7 @@ public class ExamPlayServlet extends HttpServlet {
             return;
         }
         List<Question> questions = examService.loadQuestionsForSession(session);
-        req.setAttribute("session", session);
+        req.setAttribute("examSession", session);
         req.setAttribute("questions", questions);
         req.setAttribute("remaining", examService.remainingSeconds(session));
         req.getRequestDispatcher("/WEB-INF/jsp/exam-play.jsp").forward(req, resp);
