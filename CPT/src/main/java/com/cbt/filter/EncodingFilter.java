@@ -4,7 +4,7 @@ import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import java.io.IOException;
 
-@WebFilter(filterName = "encodingFilter", urlPatterns = "/*")
+@WebFilter("/*")
 public class EncodingFilter implements Filter {
     private String encoding;
     

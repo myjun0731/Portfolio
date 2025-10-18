@@ -1,57 +1,116 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="/WEB-INF/tld/cbt-core.tld" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - 정보처리산업기사 CBT</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #fee;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-login:hover {
+            background: #5568d3;
+        }
+        .info-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #777;
+            font-size: 12px;
+        }
+    </style>
 </head>
-<body class="auth-body">
-<div class="auth-grid">
-    <section class="auth-welcome">
-        <div class="auth-brand">
-            <span class="brand-mark">CBT</span>
-            <div class="brand-copy">
-                <strong>정보처리산업기사 CBT</strong>
-                <span>Competency-based Testing Studio</span>
-            </div>
-        </div>
-        <h1>학습 여정을 위한 Claude 스타일 허브</h1>
-        <p>로그인하면 NCS 단원 맵 탐색, CBT 응시, 오답 리커버리, 목표 관리까지 하나의 보드에서 관리할 수 있습니다.</p>
-        <ul class="auth-highlights">
-            <li>문항 미리보기와 태그 기반 필터링</li>
-            <li>시드 고정 CBT 셔플 및 오프라인 복구</li>
-            <li>오답 노트와 간격 반복 복습 제안</li>
-        </ul>
-    </section>
-    <section class="auth-card" aria-labelledby="authTitle">
-        <h1 id="authTitle">로그인</h1>
-        <p class="auth-subcopy">계정을 입력해 학습 대시보드와 CBT 기능을 이어서 진행하세요.</p>
+<body>
+    <div class="login-container">
+        <h1>🎓 정보처리산업기사 CBT</h1>
 
-        <c:if test="${not empty requestScope.error}">
-            <div class="error-msg" role="alert">
-                <c:out value="${requestScope.error}" />
+        <% if (request.getAttribute("error") != null) { %>
+            <div class="error-msg">
+                <%= request.getAttribute("error") %>
             </div>
-        </c:if>
+        <% } %>
 
-        <form method="post" action="/login" class="form-grid auth-form">
-            <div class="form-field">
+        <form method="post" action="<%= request.getContextPath() %>/login">
+            <div class="form-group">
                 <label for="email">이메일</label>
-                <input type="email" id="email" name="email" placeholder="admin@test.com" required autocomplete="username">
+                <input type="email" id="email" name="email" required
+                       placeholder="admin@test.com">
             </div>
-            <div class="form-field">
+
+            <div class="form-group">
                 <label for="password">비밀번호</label>
-                <input type="password" id="password" name="password" placeholder="비밀번호 입력" required autocomplete="current-password">
+                <input type="password" id="password" name="password" required
+                       placeholder="비밀번호 입력">
             </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">로그인</button>
-            </div>
+
+            <button type="submit" class="btn-login">로그인</button>
         </form>
 
-        <p class="meta auth-meta">테스트 계정: <strong>admin@test.com</strong> / <strong>admin123</strong></p>
-    </section>
-</div>
+        <p class="info-text">
+            테스트 계정: admin@test.com / admin123
+        </p>
+    </div>
 </body>
 </html>

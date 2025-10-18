@@ -2,16 +2,15 @@ package com.cbt.servlet;
 
 import com.cbt.dao.UserDAO;
 import com.cbt.model.User;
-import com.cbt.store.AppDataStore;
 import javax.servlet.*;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
 
+import javax.servlet.annotation.WebServlet;
+
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
-    private final UserDAO userDAO = new UserDAO();
-    private final AppDataStore store = AppDataStore.getInstance();
+    private UserDAO userDAO = new UserDAO();
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
@@ -33,9 +32,7 @@ public class LoginServlet extends HttpServlet {
                 session.setAttribute("user", user);
                 session.setMaxInactiveInterval(3600);
                 String ip = request.getRemoteAddr();
-                String userAgent = request.getHeader("User-Agent");
                 userDAO.logAudit(user.getUserId(), "LOGIN", "SUCCESS", ip);
-                store.recordLogin(user.getUserId(), ip, userAgent == null ? "" : userAgent);
                 response.sendRedirect(request.getContextPath() + "/main");
             } else {
                 request.setAttribute("error", "이메일 또는 비밀번호가 올바르지 않습니다.");
