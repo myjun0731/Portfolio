@@ -30,6 +30,8 @@ public class ExamPlayServlet extends HttpServlet {
         req.setAttribute("examSession", session);
         req.setAttribute("questions", questions);
         req.setAttribute("remaining", examService.remainingSeconds(session));
+        req.setAttribute("strictNavigation", session.isStrictNavigation());
+        req.setAttribute("modeLabel", session.getOriginLabel());
         req.getRequestDispatcher("/WEB-INF/jsp/exam-play.jsp").forward(req, resp);
     }
 }

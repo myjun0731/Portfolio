@@ -13,9 +13,18 @@
         <a href="${pageContext.request.contextPath}/main" class="app-nav__link<c:if test="${activeNavKey eq 'dashboard'}"> is-active</c:if>">대시보드</a>
         <a href="${pageContext.request.contextPath}/questions" class="app-nav__link<c:if test="${activeNavKey eq 'questions'}"> is-active</c:if>">문항 탐색</a>
         <a href="${pageContext.request.contextPath}/papers/quick" class="app-nav__link<c:if test="${activeNavKey eq 'papers'}"> is-active</c:if>">연·회차</a>
+        <a href="${pageContext.request.contextPath}/exam/history" class="app-nav__link<c:if test="${activeNavKey eq 'history'}"> is-active</c:if>">응시 기록</a>
         <a href="${pageContext.request.contextPath}/study/wrong" class="app-nav__link<c:if test="${activeNavKey eq 'wrong'}"> is-active</c:if>">오답 노트</a>
         <a href="${pageContext.request.contextPath}/study/goal" class="app-nav__link<c:if test="${activeNavKey eq 'goal'}"> is-active</c:if>">학습 목표</a>
     </nav>
+    <div class="app-preferences">
+        <button type="button" class="pref-btn" data-theme-toggle aria-label="테마 전환">🌙</button>
+        <div class="pref-font">
+            <button type="button" data-font-size="-1" aria-label="작게">A-</button>
+            <button type="button" data-font-size="0" aria-label="기본">A</button>
+            <button type="button" data-font-size="1" aria-label="크게">A+</button>
+        </div>
+    </div>
     <div class="app-account">
         <c:if test="${not empty sessionScope.user}">
             <div class="account-meta">
@@ -34,12 +43,41 @@
         }
         const toggle = header.querySelector('.app-nav__toggle');
         const nav = document.getElementById('globalNav');
-        if (!toggle || !nav) {
-            return;
+        if (toggle && nav) {
+            toggle.addEventListener('click', () => {
+                const open = nav.classList.toggle('is-open');
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
         }
-        toggle.addEventListener('click', () => {
-            const open = nav.classList.toggle('is-open');
-            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        const root = document.documentElement;
+        const themeBtn = header.querySelector('[data-theme-toggle]');
+        const THEME_KEY = 'cbt-theme';
+        const FONT_KEY = 'cbt-font-scale';
+        const applyTheme = (theme) => {
+            root.dataset.theme = theme;
+            themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        };
+        const storedTheme = localStorage.getItem(THEME_KEY) || 'light';
+        applyTheme(storedTheme);
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+                applyTheme(next);
+                localStorage.setItem(THEME_KEY, next);
+            });
+        }
+        const applyFont = (scale) => {
+            root.style.setProperty('--app-font-scale', scale);
+        };
+        const storedFont = localStorage.getItem(FONT_KEY) || '1';
+        applyFont(storedFont);
+        header.querySelectorAll('[data-font-size]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sizeKey = btn.getAttribute('data-font-size');
+                const scale = sizeKey === '1' ? '1.1' : sizeKey === '-1' ? '0.95' : '1';
+                applyFont(scale);
+                localStorage.setItem(FONT_KEY, scale);
+            });
         });
     })();
 </script>

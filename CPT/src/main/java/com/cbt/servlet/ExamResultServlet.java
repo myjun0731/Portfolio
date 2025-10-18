@@ -1,6 +1,7 @@
 package com.cbt.servlet;
 
 import com.cbt.model.ExamReport;
+import com.cbt.model.Question;
 import com.cbt.service.ExamService;
 
 import javax.servlet.ServletException;
@@ -9,6 +10,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @WebServlet("/exam/result")
@@ -27,9 +29,12 @@ public class ExamResultServlet extends HttpServlet {
         req.getSession().removeAttribute("lastReport");
         req.setAttribute("report", report);
         req.setAttribute("responses", responses);
-        req.setAttribute("questions", examService.loadQuestionsForSession(report.getSession()));
+        List<Question> answered = examService.loadQuestionsForSession(report.getSession());
+        req.setAttribute("questions", answered);
+        req.setAttribute("recommended", examService.recommendForSession(report.getSession().getSessId()));
         req.setAttribute("unitAccuracies", report.getUnitAccuracies());
         req.setAttribute("tagWeaknesses", report.getTagWeaknesses());
+        req.setAttribute("modeLabel", report.getSession().getOriginLabel());
         req.setAttribute("activeNav", "dashboard");
         req.getRequestDispatcher("/WEB-INF/jsp/exam-result.jsp").forward(req, resp);
     }

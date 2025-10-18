@@ -14,6 +14,8 @@ public class Question {
     private Integer examRound;
     private String stem;
     private String commentary;
+    private String hint;
+    private String videoUrl;
     private int diff;
     private String type;
     private List<QOption> options = new ArrayList<>();
@@ -42,6 +44,10 @@ public class Question {
     public void setStem(String stem) { this.stem = stem; }
     public String getCommentary() { return commentary; }
     public void setCommentary(String commentary) { this.commentary = commentary; }
+    public String getHint() { return hint; }
+    public void setHint(String hint) { this.hint = hint; }
+    public String getVideoUrl() { return videoUrl; }
+    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public int getDiff() { return diff; }
     public void setDiff(int diff) { this.diff = diff; }
     public String getType() { return type; }

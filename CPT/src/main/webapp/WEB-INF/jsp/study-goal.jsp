@@ -70,6 +70,141 @@
             </c:otherwise>
         </c:choose>
     </section>
+
+    <section class="app-section">
+        <div class="section-headline">
+            <h2>주간 학습 플래너</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty studyPlan}">
+                <div class="alert">추천 학습 계획이 없습니다. 시험을 응시하면 자동으로 맞춤 플랜이 생성됩니다.</div>
+            </c:when>
+            <c:otherwise>
+                <div class="planner-grid">
+                    <c:forEach var="plan" items="${studyPlan}">
+                        <article class="planner-card">
+                            <h3>${plan.label}</h3>
+                            <p class="planner-focus"><strong>${plan.focus}</strong></p>
+                            <p class="planner-meta">추천 ${plan.questionCount}문항</p>
+                            <p class="planner-note">${plan.note}</p>
+                        </article>
+                    </c:forEach>
+                </div>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>다가오는 복습 알림</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty reminders}">
+                <div class="alert">등록된 알림이 없습니다. 시험을 응시하면 복습 일정이 자동으로 쌓입니다.</div>
+            </c:when>
+            <c:otherwise>
+                <ul class="reminder-list">
+                    <c:forEach var="reminder" items="${reminders}">
+                        <li>
+                            <span class="reminder-date"><c:out value="${reminder.dueDate}" /></span>
+                            <div>
+                                <strong><c:out value="${reminder.title}" /></strong>
+                                <p><c:out value="${reminder.description}" /></p>
+                            </div>
+                        </li>
+                    </c:forEach>
+                </ul>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section">
+        <div class="section-headline">
+            <h2>핵심 개념 요약</h2>
+        </div>
+        <div class="concept-grid">
+            <c:forEach var="concept" items="${conceptSummaries}">
+                <article class="concept-card">
+                    <h3><c:out value="${concept.title}" /></h3>
+                    <p class="concept-body"><c:out value="${concept.description}" /></p>
+                    <p class="concept-tags">태그: <c:out value="${concept.tags}" /></p>
+                </article>
+            </c:forEach>
+        </div>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>단계별 학습 모드</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty stageRecommendations}">
+                <div class="alert">추천 단계 데이터가 없습니다. 시험을 응시하면 자동으로 생성됩니다.</div>
+            </c:when>
+            <c:otherwise>
+                <ul class="stage-list">
+                    <c:forEach var="stage" items="${stageRecommendations}">
+                        <li>
+                            <span class="stage-label">${stage.stage}</span>
+                            <div>
+                                <strong><c:out value="${stage.focus}" /></strong>
+                                <p><c:out value="${stage.suggestion}" /></p>
+                            </div>
+                        </li>
+                    </c:forEach>
+                </ul>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>SRS 복습 큐</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty srsQueue}">
+                <div class="alert">예정된 복습 카드가 없습니다. 오답이 누적되면 자동으로 생성됩니다.</div>
+            </c:when>
+            <c:otherwise>
+                <table class="table srs-table">
+                    <thead><tr><th>문항</th><th>다음 복습일</th><th>레벨</th></tr></thead>
+                    <tbody>
+                    <c:forEach var="card" items="${srsQueue}">
+                        <tr>
+                            <td><c:out value="${card.stem}" /></td>
+                            <td>${card.dueDate}</td>
+                            <td>Box ${card.box}</td>
+                        </tr>
+                    </c:forEach>
+                    </tbody>
+                </table>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>집중 단원 요약</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty unitSummaries}">
+                <div class="alert">단원별 통계가 없습니다. CBT 시험을 응시하면 자동으로 채워집니다.</div>
+            </c:when>
+            <c:otherwise>
+                <div class="unit-summary-grid">
+                    <c:forEach var="summary" items="${unitSummaries}" varStatus="loop">
+                        <c:if test="${loop.index < 4}">
+                            <article class="unit-summary-card">
+                                <h3><c:out value="${summary.unit.name}" /></h3>
+                                <p class="meta">총 <strong>${summary.totalQuestions}</strong>문항 · 즐겨찾기 ${summary.favoriteQuestions} · 오답 ${summary.wrongAttempts}</p>
+                                <p class="hint">NCS 코드 ${summary.unit.ncsCode}</p>
+                            </article>
+                        </c:if>
+                    </c:forEach>
+                </div>
+            </c:otherwise>
+        </c:choose>
+    </section>
 </main>
 </body>
 </html>

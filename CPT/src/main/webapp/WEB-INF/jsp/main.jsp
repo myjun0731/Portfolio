@@ -52,6 +52,16 @@
                 <p class="metric-caption">취약 개념 TOP5 분석에 활용됩니다.</p>
             </article>
             <article class="metric-card">
+                <h3>즐겨찾기</h3>
+                <p class="metric-value"><c:out value="${favoriteCount}" default="0" /> 문항</p>
+                <p class="metric-caption">문항 탐색에서 ★ 버튼으로 관리하세요.</p>
+            </article>
+            <article class="metric-card">
+                <h3>오답 노트</h3>
+                <p class="metric-value"><c:out value="${wrongCount}" default="0" /> 문항</p>
+                <p class="metric-caption">오답 세션으로 재응시가 가능합니다.</p>
+            </article>
+            <article class="metric-card">
                 <h3>최근 점수</h3>
                 <c:choose>
                     <c:when test="${empty scoreHistory}">
@@ -64,6 +74,76 @@
                 <p class="metric-caption">응시 완료 시 자동으로 기록됩니다.</p>
             </article>
         </div>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>공지 & 업데이트</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty announcements}">
+                <div class="alert">등록된 공지가 없습니다.</div>
+            </c:when>
+            <c:otherwise>
+                <ul class="announcement-list">
+                    <c:forEach var="notice" items="${announcements}">
+                        <li>
+                            <span class="announcement-date">${notice.date}</span>
+                            <div>
+                                <strong><c:out value="${notice.title}" /></strong>
+                                <p><c:out value="${notice.body}" /></p>
+                            </div>
+                        </li>
+                    </c:forEach>
+                </ul>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>성과 뱃지</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty badges}">
+                <div class="alert">획득 가능한 뱃지가 없습니다.</div>
+            </c:when>
+            <c:otherwise>
+                <ul class="badge-wall">
+                    <c:forEach var="badge" items="${badges}">
+                        <li class="badge-wall__item<c:if test="${not badge.earned}"> is-locked</c:if>">
+                            <strong><c:out value="${badge.title}" /></strong>
+                            <p><c:out value="${badge.description}" /></p>
+                        </li>
+                    </c:forEach>
+                </ul>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>최근 로그인 이력</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty loginHistory}">
+                <div class="alert">최근 로그인 기록이 없습니다.</div>
+            </c:when>
+            <c:otherwise>
+                <table class="table">
+                    <thead><tr><th>시간</th><th>IP</th><th>브라우저</th></tr></thead>
+                    <tbody>
+                    <c:forEach var="entry" items="${loginHistory}">
+                        <tr>
+                            <td>${entry.timestamp}</td>
+                            <td><c:out value="${entry.ip}" /></td>
+                            <td><c:out value="${entry.userAgent}" /></td>
+                        </tr>
+                    </c:forEach>
+                    </tbody>
+                </table>
+            </c:otherwise>
+        </c:choose>
     </section>
 
     <section class="app-section">
@@ -128,6 +208,79 @@
                         </li>
                     </c:forEach>
                 </ol>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section">
+        <div class="section-headline">
+            <h2>주간 학습 플랜 & 알림</h2>
+        </div>
+        <div class="dashboard-plan">
+            <div class="planner-column">
+                <h3>추천 플랜</h3>
+                <c:choose>
+                    <c:when test="${empty studyPlan}">
+                        <div class="alert">추천 플랜이 없습니다. 시험을 응시하면 맞춤 일정이 생성됩니다.</div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="planner-grid">
+                            <c:forEach var="plan" items="${studyPlan}">
+                                <article class="planner-card">
+                                    <h4>${plan.label}</h4>
+                                    <p class="planner-focus"><strong>${plan.focus}</strong></p>
+                                    <p class="planner-meta">추천 ${plan.questionCount}문항</p>
+                                    <p class="planner-note">${plan.note}</p>
+                                </article>
+                            </c:forEach>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+            <div class="planner-column">
+                <h3>다가오는 알림</h3>
+                <c:choose>
+                    <c:when test="${empty reminders}">
+                        <div class="alert">예정된 알림이 없습니다.</div>
+                    </c:when>
+                    <c:otherwise>
+                        <ul class="reminder-list">
+                            <c:forEach var="reminder" items="${reminders}">
+                                <li>
+                                    <span class="reminder-date"><c:out value="${reminder.dueDate}" /></span>
+                                    <div>
+                                        <strong><c:out value="${reminder.title}" /></strong>
+                                        <p><c:out value="${reminder.description}" /></p>
+                                    </div>
+                                </li>
+                            </c:forEach>
+                        </ul>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+        </div>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
+            <h2>집중 단원 요약</h2>
+        </div>
+        <c:choose>
+            <c:when test="${empty unitSummaries}">
+                <div class="alert">단원별 통계가 없습니다. CBT 시험을 응시하면 자동으로 채워집니다.</div>
+            </c:when>
+            <c:otherwise>
+                <div class="unit-summary-grid">
+                    <c:forEach var="summary" items="${unitSummaries}" varStatus="loop">
+                        <c:if test="${loop.index < 4}">
+                            <article class="unit-summary-card">
+                                <h3><c:out value="${summary.unit.name}" /></h3>
+                                <p class="meta">총 <strong>${summary.totalQuestions}</strong>문항 · 즐겨찾기 ${summary.favoriteQuestions} · 오답 ${summary.wrongAttempts}</p>
+                                <p class="hint">NCS 코드 ${summary.unit.ncsCode}</p>
+                            </article>
+                        </c:if>
+                    </c:forEach>
+                </div>
             </c:otherwise>
         </c:choose>
     </section>

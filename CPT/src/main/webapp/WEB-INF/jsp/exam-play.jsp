@@ -15,17 +15,20 @@
             <h2>남은 시간</h2>
             <div class="timer-display" id="timer"></div>
             <div class="session-info">세션 ID <c:out value="${examSession.sessId}" /></div>
+            <div class="session-info">모드 <c:out value="${modeLabel}" default="기출" /></div>
         </section>
         <div class="exam-warning" id="warning" style="display:none;">남은 시간 알림</div>
         <div class="exam-warning offline" id="offline" style="display:none;">오프라인 상태입니다. 연결 복구 후 자동 저장됩니다.</div>
-        <section class="exam-sidebar__section">
-            <h2>문항 내비게이터</h2>
-            <div class="exam-badges" id="navigator" role="list">
-                <c:forEach var="question" items="${questions}" varStatus="loop">
-                    <button type="button" class="exam-badge" data-qid="${question.qId}" onclick="goQuestion(${loop.index})" role="listitem">Q${loop.index + 1}</button>
-                </c:forEach>
-            </div>
-        </section>
+        <c:if test="${not strictNavigation}">
+            <section class="exam-sidebar__section">
+                <h2>문항 내비게이터</h2>
+                <div class="exam-badges" id="navigator" role="list">
+                    <c:forEach var="question" items="${questions}" varStatus="loop">
+                        <button type="button" class="exam-badge" data-qid="${question.qId}" onclick="goQuestion(${loop.index})" role="listitem">Q${loop.index + 1}</button>
+                    </c:forEach>
+                </div>
+            </section>
+        </c:if>
         <section class="exam-sidebar__section">
             <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit" class="exam-submit">
                 <input type="hidden" name="sid" value="${examSession.sessId}">
@@ -34,9 +37,18 @@
         </section>
     </aside>
 
-    <main class="exam-main">
+    <main class="exam-main" data-strict="${strictNavigation}">
+        <div class="exam-mode-banner">
+            <c:choose>
+                <c:when test="${strictNavigation}">실전 모드가 활성화되어 문항을 순차적으로 진행합니다.</c:when>
+                <c:otherwise><c:out value="${modeLabel}" default="연습 세션" /> 모드로 자유롭게 이동할 수 있습니다.</c:otherwise>
+            </c:choose>
+        </div>
+        <div class="exam-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="exam-progress__bar" id="progressBar"></div>
+        </div>
         <c:forEach var="question" items="${questions}" varStatus="loop">
-            <article class="exam-question" data-index="${loop.index}" <c:if test="${not loop.first}">style="display:none;"</c:if>>
+            <article class="exam-question" id="q${question.qId}" data-index="${loop.index}" <c:if test="${not loop.first}">style="display:none;"</c:if>>
                 <header class="exam-question__header">
                     <div class="exam-question__meta">
                         <span class="badge soft">Q${loop.index + 1}</span>
@@ -53,6 +65,23 @@
                         </label>
                     </c:forEach>
                 </section>
+                <c:if test="${not empty question.hint or not empty question.videoUrl}">
+                    <div class="exam-hints">
+                        <c:if test="${not empty question.hint}">
+                            <details class="hint-panel">
+                                <summary>힌트 보기</summary>
+                                <p><c:out value="${question.hint}" /></p>
+                            </details>
+                        </c:if>
+                        <c:if test="${not empty question.videoUrl}">
+                            <a class="hint-link" href="${question.videoUrl}" target="_blank" rel="noopener">해설 영상 열기</a>
+                        </c:if>
+                    </div>
+                </c:if>
+                <footer class="exam-question__footer">
+                    <button type="button" class="btn prev-question" <c:if test="${strictNavigation}">disabled</c:if>>이전</button>
+                    <button type="button" class="btn btn-primary next-question">다음</button>
+                </footer>
             </article>
         </c:forEach>
     </main>
@@ -64,6 +93,23 @@
     const debounce = {};
     const queue = [];
     let offline = false;
+    const strictMode = ${strictNavigation ? "true" : "false"};
+    let currentIndex = 0;
+    const totalQuestions = ${fn:length(questions)};
+    const progressBar = document.getElementById('progressBar');
+    const progressContainer = document.querySelector('.exam-progress');
+
+    function updateProgress() {
+        if (!progressBar || !progressContainer) {
+            return;
+        }
+        const answered = document.querySelectorAll('.option-list input:checked').length;
+        const byAnswered = totalQuestions === 0 ? 0 : (answered / totalQuestions) * 100;
+        const byPosition = totalQuestions === 0 ? 0 : ((currentIndex + 1) / totalQuestions) * 100;
+        const progress = Math.min(100, Math.max(byAnswered, byPosition));
+        progressBar.style.width = progress + '%';
+        progressContainer.setAttribute('aria-valuenow', Math.round(progress));
+    }
 
     function renderTimer() {
         const timer = document.getElementById('timer');
@@ -83,12 +129,44 @@
         }
     }
 
-    function goQuestion(index) {
+    function goQuestion(index, force) {
+        if (strictMode && index < currentIndex && !force) {
+            return;
+        }
+        currentIndex = index;
         const articles = document.querySelectorAll('.exam-question');
         articles.forEach((article, idx) => {
             article.style.display = idx === index ? 'block' : 'none';
         });
+        updateNavState();
+        updateProgress();
     }
+
+    function updateNavState() {
+        const prevButtons = document.querySelectorAll('.prev-question');
+        const nextButtons = document.querySelectorAll('.next-question');
+        prevButtons.forEach(btn => {
+            btn.disabled = strictMode || currentIndex === 0;
+        });
+        nextButtons.forEach(btn => {
+            btn.disabled = currentIndex >= totalQuestions - 1;
+        });
+    }
+
+    function nextQuestion() {
+        if (currentIndex < totalQuestions - 1) {
+            goQuestion(currentIndex + 1, true);
+        }
+    }
+
+    function prevQuestion() {
+        if (!strictMode && currentIndex > 0) {
+            goQuestion(currentIndex - 1, true);
+        }
+    }
+
+    document.querySelectorAll('.next-question').forEach(btn => btn.addEventListener('click', nextQuestion));
+    document.querySelectorAll('.prev-question').forEach(btn => btn.addEventListener('click', prevQuestion));
 
     function scheduleSave(qid) {
         clearTimeout(debounce[qid]);
@@ -122,6 +200,7 @@
             badge.classList.toggle('answered', answered);
             badge.classList.toggle('review', flags.has(qid));
         }
+        updateProgress();
     }
 
     const flags = new Set();
@@ -164,14 +243,14 @@
     });
 
     document.addEventListener('keydown', (event) => {
-        const articles = document.querySelectorAll('.exam-question');
-        const visibleIndex = Array.from(articles).findIndex(a => a.style.display !== 'none');
         if (event.key === 'ArrowRight') {
-            goQuestion(Math.min(articles.length - 1, visibleIndex + 1));
-        } else if (event.key === 'ArrowLeft') {
-            goQuestion(Math.max(0, visibleIndex - 1));
+            nextQuestion();
+        } else if (event.key === 'ArrowLeft' && !strictMode) {
+            prevQuestion();
         } else if (/^[1-4]$/.test(event.key)) {
-            const option = articles[visibleIndex].querySelectorAll('input')[parseInt(event.key, 10) - 1];
+            const articles = document.querySelectorAll('.exam-question');
+            const visible = articles[currentIndex];
+            const option = visible ? visible.querySelectorAll('input')[parseInt(event.key, 10) - 1] : null;
             if (option) {
                 option.checked = true;
                 const qid = parseInt(option.name.split('-')[1], 10);
@@ -181,8 +260,9 @@
         }
     });
 
-    goQuestion(0);
+    goQuestion(0, true);
     renderTimer();
+    updateProgress();
 </script>
 </body>
 </html>

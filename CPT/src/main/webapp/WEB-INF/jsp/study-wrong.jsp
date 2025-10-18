@@ -17,6 +17,11 @@
             <h1>📝 오답 노트</h1>
             <p class="subtitle">최근 오답 문항을 다시 풀고 개인 메모를 남겨 복습 루틴을 자동화하세요.</p>
         </div>
+        <c:if test="${fn:length(retry) > 0}">
+            <div class="hero-actions">
+                <a class="btn" href="${pageContext.request.contextPath}/exam/start?action=wrong">오답 세션 생성</a>
+            </div>
+        </c:if>
     </section>
 
     <section class="app-section">
@@ -40,6 +45,16 @@
                                     <li><c:out value="${opt.text}" /></li>
                                 </c:forEach>
                             </ol>
+                            <c:if test="${not empty question.commentary or not empty question.hint}">
+                                <div class="review-explain">
+                                    <c:if test="${not empty question.commentary}">
+                                        <p class="result-commentary"><strong>해설</strong> · <c:out value="${question.commentary}" /></p>
+                                    </c:if>
+                                    <c:if test="${not empty question.hint}">
+                                        <p class="result-hint"><strong>힌트</strong> · <c:out value="${question.hint}" /></p>
+                                    </c:if>
+                                </div>
+                            </c:if>
                             <form method="post" action="${pageContext.request.contextPath}/study/review" class="review-form">
                                 <input type="hidden" name="qid" value="${question.qId}">
                                 <label class="review-flag">

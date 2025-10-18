@@ -18,6 +18,11 @@ public class ExamSession {
     private int resumeCnt;
     private boolean resumed;
     private final List<Timestamp> focusOutEvents = new ArrayList<>();
+    private String mode;
+    private String originLabel;
+    private boolean strictNavigation;
+    private boolean shuffleQuestions = true;
+    private int questionCount;
 
     public ExamSession() {}
 
@@ -46,4 +51,14 @@ public class ExamSession {
     public boolean isResumed() { return resumed; }
     public void setResumed(boolean resumed) { this.resumed = resumed; }
     public List<Timestamp> getFocusOutEvents() { return focusOutEvents; }
+    public String getMode() { return mode; }
+    public void setMode(String mode) { this.mode = mode; }
+    public String getOriginLabel() { return originLabel; }
+    public void setOriginLabel(String originLabel) { this.originLabel = originLabel; }
+    public boolean isStrictNavigation() { return strictNavigation; }
+    public void setStrictNavigation(boolean strictNavigation) { this.strictNavigation = strictNavigation; }
+    public boolean isShuffleQuestions() { return shuffleQuestions; }
+    public void setShuffleQuestions(boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; }
+    public int getQuestionCount() { return questionCount; }
+    public void setQuestionCount(int questionCount) { this.questionCount = questionCount; }
 }

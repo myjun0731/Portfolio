@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,14 @@ public class AppDataStore {
     private final Map<Integer, ExamSession> sessions = new ConcurrentHashMap<>();
     private final Map<Integer, Map<Integer, ExamResp>> responses = new ConcurrentHashMap<>();
     private final Map<Integer, NavigableMap<LocalDate, Integer>> scoreHistory = new ConcurrentHashMap<>();
+    private final Map<Integer, Set<Integer>> favorites = new ConcurrentHashMap<>();
+    private final Map<Integer, StudyNote> studyNotes = new ConcurrentHashMap<>();
+    private final Map<Integer, List<QuestionFeedback>> feedbackByQuestion = new ConcurrentHashMap<>();
+    private final Map<Integer, List<StudyReminder>> remindersByUser = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Integer>> sessionQuestionOverrides = new ConcurrentHashMap<>();
+    private final List<ConceptSummary> conceptSummaries = new ArrayList<>();
+    private final List<Announcement> announcements = new ArrayList<>();
+    private final Map<Integer, Deque<LoginActivity>> loginHistoryByUser = new ConcurrentHashMap<>();
 
     private final AtomicInteger sessionSeq = new AtomicInteger(1000);
 
@@ -50,7 +59,6 @@ public class AppDataStore {
         tags.put(3, new Tag(3, "자료구조"));
         tags.put(4, new Tag(4, "DB설계"));
 
-        // Sample questions and options
         Question q1 = new Question();
         q1.setQId(1001);
         q1.setSubjectId(1);
@@ -62,6 +70,8 @@ public class AppDataStore {
         q1.setExamRound(1);
         q1.setStem("제3정규형(3NF)에 대한 설명으로 옳은 것은?");
         q1.setCommentary("함수 종속성을 고려한 정규화 단계 설명");
+        q1.setHint("후보키와 결정자의 관계를 떠올려 보세요.");
+        q1.setVideoUrl("https://example.com/videos/3nf");
         q1.setDiff(2);
         q1.setType("M");
         q1.getTags().add(tags.get(1));
@@ -83,6 +93,8 @@ public class AppDataStore {
         q2.setExamRound(2);
         q2.setStem("트랜잭션의 고립성 수준 중 REPEATABLE READ에 대한 설명으로 옳은 것은?");
         q2.setCommentary("고립성 수준 비교");
+        q2.setHint("팬텀 리드와 더티 리드를 구분해보세요.");
+        q2.setVideoUrl("https://example.com/videos/isolation");
         q2.setDiff(3);
         q2.setType("M");
         q2.getTags().add(tags.get(2));
@@ -103,6 +115,8 @@ public class AppDataStore {
         q3.setExamRound(2);
         q3.setStem("요구사항 명세의 검증 기법으로 거리가 먼 것은?");
         q3.setCommentary("검토 기법");
+        q3.setHint("정적 검토와 동적 테스트의 차이에 주목하세요.");
+        q3.setVideoUrl("https://example.com/videos/req-review");
         q3.setDiff(1);
         q3.setType("M");
         q3.getTags().add(tags.get(3));
@@ -141,6 +155,37 @@ public class AppDataStore {
 
         scoreHistory.computeIfAbsent(1, k -> new TreeMap<>()).put(LocalDate.of(2023, 1, 1), 68);
         scoreHistory.computeIfAbsent(1, k -> new TreeMap<>()).put(LocalDate.of(2023, 6, 1), 72);
+
+        favorites.computeIfAbsent(1, k -> ConcurrentHashMap.newKeySet()).add(1001);
+        studyNotes.put(Objects.hash(1, 1001), new StudyNote(1, 1001, "함수 종속성 구간 재확인", LocalDateTime.now().minusDays(1)));
+        remindersByUser.put(1, new CopyOnWriteArrayList<>(Arrays.asList(
+                new StudyReminder(LocalDate.now().plusDays(1), "오답 복습", "최근 틀린 정규화 문항을 5문제 풀어보세요."),
+                new StudyReminder(LocalDate.now().plusDays(3), "태그 집중 훈련", "트랜잭션 태그 문항을 3문제 재도전하세요."),
+                new StudyReminder(LocalDate.now().plusWeeks(1), "모의고사", "실전 모드로 40분 모의고사를 진행해보세요.")
+        )));
+
+        conceptSummaries.add(new ConceptSummary(
+                "정규화 핵심",
+                "함수 종속성을 기준으로 이상을 제거하는 단계별 접근입니다. 기본키와 후보키 정의를 재확인하세요.",
+                "정규화,3NF,BCNF"
+        ));
+        conceptSummaries.add(new ConceptSummary(
+                "트랜잭션 고립성",
+                "동시성 제어를 위한 4가지 격리 수준을 비교하고, 팬텀/더티/반복불가 읽기를 구분합니다.",
+                "트랜잭션,Isolation,동시성"
+        ));
+        conceptSummaries.add(new ConceptSummary(
+                "요구사항 검증",
+                "워크스루/인스펙션/프토타이핑 등 정적 검토 기법과 테스트 기반 접근을 비교합니다.",
+                "요구사항,검토,QA"
+        ));
+
+        announcements.add(new Announcement(LocalDate.now().minusDays(2),
+                "6월 모의고사 업데이트",
+                "실전 모드 선택 시 문항 순서를 고정하고 제출 전 점검 체크리스트가 추가되었습니다."));
+        announcements.add(new Announcement(LocalDate.now().minusWeeks(1),
+                "오답 리트라이 개선",
+                "오답 전용 세션에서 태그 기반 추천 문제가 함께 제시됩니다."));
     }
 
     private QOption option(int optId, int qId, int no, String text, boolean correct) {
@@ -185,6 +230,10 @@ public class AppDataStore {
         return paperQuestions.getOrDefault(paperId, Collections.emptyList());
     }
 
+    public List<Integer> getSessionQuestionIds(ExamSession session) {
+        return sessionQuestionOverrides.getOrDefault(session.getSessId(), getPaperQuestionIds(session.getPaperId()));
+    }
+
     public GoalPlan getGoal(int userId) {
         return goals.get(userId);
     }
@@ -224,12 +273,32 @@ public class AppDataStore {
     }
 
     public ExamSession createSession(int userId, int paperId, long seed, int timeLimitMin) {
+        return createSession(userId, paperId, seed, timeLimitMin, "PAPER", "기출 회차", false, true, null);
+    }
+
+    public ExamSession createSession(int userId, Integer paperId, long seed, int timeLimitMin,
+                                     String mode, String origin, boolean strictNav, boolean shuffle,
+                                     List<Integer> overrideQuestionIds) {
         ExamSession session = new ExamSession();
         session.setSessId(sessionSeq.incrementAndGet());
         session.setUserId(userId);
-        session.setPaperId(paperId);
+        session.setPaperId(paperId == null ? 0 : paperId);
         session.setSeed(seed);
         session.setTimeLimitMin(timeLimitMin);
+        session.setMode(mode);
+        session.setOriginLabel(origin);
+        session.setStrictNavigation(strictNav);
+        session.setShuffleQuestions(shuffle);
+        List<Integer> questionIds;
+        if (overrideQuestionIds != null && !overrideQuestionIds.isEmpty()) {
+            questionIds = new ArrayList<>(overrideQuestionIds);
+            sessionQuestionOverrides.put(session.getSessId(), questionIds);
+        } else if (paperId != null) {
+            questionIds = new ArrayList<>(getPaperQuestionIds(paperId));
+        } else {
+            questionIds = Collections.emptyList();
+        }
+        session.setQuestionCount(questionIds.size());
         Timestamp now = Timestamp.from(LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId()).toInstant());
         session.setStartAt(now);
         session.setEndAt(new Timestamp(now.getTime() + timeLimitMin * 60L * 1000L));
@@ -263,9 +332,153 @@ public class AppDataStore {
         session.setSubmitAt(new Timestamp(System.currentTimeMillis()));
         scoreHistory.computeIfAbsent(session.getUserId(), k -> new TreeMap<>())
                 .put(LocalDate.now(), score);
+        remindersByUser.computeIfAbsent(session.getUserId(), k -> new CopyOnWriteArrayList<>())
+                .add(new StudyReminder(LocalDate.now().plusDays(2), "세션 복습", session.getOriginLabel() + " 결과를 복기하세요."));
     }
 
     public NavigableMap<LocalDate, Integer> getScoreHistory(int userId) {
         return scoreHistory.getOrDefault(userId, new TreeMap<>());
+    }
+
+    public Set<Integer> getFavorites(int userId) {
+        return new HashSet<>(favorites.getOrDefault(userId, Collections.emptySet()));
+    }
+
+    public boolean toggleFavorite(int userId, int questionId) {
+        Set<Integer> favSet = favorites.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet());
+        if (favSet.contains(questionId)) {
+            favSet.remove(questionId);
+            return false;
+        }
+        favSet.add(questionId);
+        return true;
+    }
+
+    public void setFavorite(int userId, int questionId, boolean favorite) {
+        Set<Integer> favSet = favorites.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet());
+        if (favorite) {
+            favSet.add(questionId);
+        } else {
+            favSet.remove(questionId);
+        }
+    }
+
+    public Optional<StudyNote> findStudyNote(int userId, int questionId) {
+        return Optional.ofNullable(studyNotes.get(Objects.hash(userId, questionId)));
+    }
+
+    public void saveStudyNote(StudyNote note) {
+        studyNotes.put(Objects.hash(note.getUserId(), note.getQuestionId()), note);
+    }
+
+    public List<QuestionFeedback> getFeedbackForQuestion(int questionId) {
+        return new ArrayList<>(feedbackByQuestion.getOrDefault(questionId, List.of()));
+    }
+
+    public void addFeedback(QuestionFeedback feedback) {
+        feedbackByQuestion.computeIfAbsent(feedback.getQuestionId(), k -> new CopyOnWriteArrayList<>())
+                .add(feedback);
+    }
+
+    public List<StudyReminder> getReminders(int userId) {
+        return new ArrayList<>(remindersByUser.getOrDefault(userId, List.of()));
+    }
+
+    public List<ConceptSummary> getConceptSummaries() {
+        return new ArrayList<>(conceptSummaries);
+    }
+
+    public List<Announcement> getAnnouncements() {
+        return new ArrayList<>(announcements);
+    }
+
+    public List<ExamSession> getSessionsForUser(int userId) {
+        return sessions.values().stream()
+                .filter(sess -> sess.getUserId() == userId)
+                .sorted(Comparator.comparing(ExamSession::getStartAt).reversed())
+                .collect(Collectors.toList());
+    }
+
+    public List<UnitSummary> buildUnitSummaries(int userId) {
+        Map<Integer, Long> totalByUnit = questions.values().stream()
+                .collect(Collectors.groupingBy(Question::getUnitId, Collectors.counting()));
+        Set<Integer> fav = favorites.getOrDefault(userId, Collections.emptySet());
+        Map<Integer, Long> favByUnit = questions.values().stream()
+                .filter(q -> fav.contains(q.getQId()))
+                .collect(Collectors.groupingBy(Question::getUnitId, Collectors.counting()));
+        Map<Integer, Long> wrongByUnit = wrongNotes.values().stream()
+                .filter(note -> note.getUserId() == userId)
+                .collect(Collectors.groupingBy(WrongNote::getQuestionId, Collectors.summingLong(WrongNote::getAttempts)));
+        Map<Integer, Long> wrongAggregated = new HashMap<>();
+        for (Map.Entry<Integer, Long> entry : wrongByUnit.entrySet()) {
+            findQuestion(entry.getKey()).ifPresent(question ->
+                    wrongAggregated.merge(question.getUnitId(), entry.getValue(), Long::sum));
+        }
+        return totalByUnit.entrySet().stream()
+                .map(entry -> {
+                    Unit unit = units.get(entry.getKey());
+                    long favCount = favByUnit.getOrDefault(entry.getKey(), 0L);
+                    long wrongCount = wrongAggregated.getOrDefault(entry.getKey(), 0L);
+                    return new UnitSummary(unit, entry.getValue(), favCount, wrongCount);
+                })
+                .sorted(Comparator.comparing(UnitSummary::getWrongAttempts).thenComparing(UnitSummary::getTotalQuestions).reversed())
+                .collect(Collectors.toList());
+    }
+
+    public List<StudyPlanSuggestion> buildStudyPlan(int userId) {
+        GoalPlan goal = getGoal(userId);
+        int daily = goal != null ? goal.getDailyQuestionCount() : 20;
+        List<UnitSummary> summaries = buildUnitSummaries(userId);
+        List<UnitSummary> focus = summaries.stream()
+                .filter(summary -> summary.getWrongAttempts() > 0 || summary.getFavoriteQuestions() > 0)
+                .limit(3)
+                .collect(Collectors.toList());
+        List<StudyPlanSuggestion> plan = new ArrayList<>();
+        String[] labels = {"월", "수", "금"};
+        if (focus.isEmpty()) {
+            plan.add(new StudyPlanSuggestion("월", "기출 전 범위", daily, "기본 회독을 통해 전체 감각을 유지하세요."));
+            plan.add(new StudyPlanSuggestion("수", "태그 복습", Math.max(5, daily / 2), "주요 태그를 순회하며 기본기를 강화하세요."));
+            plan.add(new StudyPlanSuggestion("금", "실전 모의", Math.max(10, daily / 2), "실전 모드로 모의고사를 진행하세요."));
+            return plan;
+        }
+        for (int i = 0; i < focus.size(); i++) {
+            UnitSummary summary = focus.get(i);
+            int quota = Math.max(5, daily / Math.max(focus.size(), 1));
+            plan.add(new StudyPlanSuggestion(labels[i % labels.length], summary.getUnit().getName(), quota,
+                    "오답 " + summary.getWrongAttempts() + "회 · 즐겨찾기 " + summary.getFavoriteQuestions() + "문항"));
+        }
+        return plan;
+    }
+
+    public List<Question> recommendSimilarQuestions(Collection<Question> baseQuestions, int limit) {
+        if (baseQuestions == null || baseQuestions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<Integer> baseIds = baseQuestions.stream().map(Question::getQId).collect(Collectors.toSet());
+        Set<Integer> tagIds = baseQuestions.stream()
+                .flatMap(q -> q.getTags().stream())
+                .map(Tag::getTagId)
+                .collect(Collectors.toSet());
+        double avgDiff = baseQuestions.stream().mapToInt(Question::getDiff).average().orElse(2.0);
+        return questions.values().stream()
+                .filter(q -> !baseIds.contains(q.getQId()))
+                .filter(q -> q.getTags().stream().anyMatch(tag -> tagIds.contains(tag.getTagId())))
+                .sorted(Comparator
+                        .comparingDouble((Question q) -> Math.abs(q.getDiff() - avgDiff))
+                        .thenComparing(Question::getExamYear, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public void recordLogin(int userId, String ip, String userAgent) {
+        Deque<LoginActivity> deque = loginHistoryByUser.computeIfAbsent(userId, k -> new ArrayDeque<>());
+        deque.addFirst(new LoginActivity(LocalDateTime.now(), ip, userAgent));
+        while (deque.size() > 10) {
+            deque.removeLast();
+        }
+    }
+
+    public List<LoginActivity> getRecentLogins(int userId) {
+        return new ArrayList<>(loginHistoryByUser.getOrDefault(userId, new ArrayDeque<>()));
     }
 }

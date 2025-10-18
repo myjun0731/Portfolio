@@ -1,11 +1,15 @@
 package com.cbt.service;
 
 import com.cbt.model.Question;
+import com.cbt.model.QuestionFeedback;
 import com.cbt.model.Subject;
+import com.cbt.model.StudyNote;
 import com.cbt.model.Tag;
 import com.cbt.model.Unit;
+import com.cbt.model.UnitSummary;
 import com.cbt.store.AppDataStore;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -16,7 +20,7 @@ import java.util.stream.Collectors;
 public class QuestionService {
     private final AppDataStore store = AppDataStore.getInstance();
 
-    public List<Question> search(Map<String, String[]> params, int page, int size) {
+    public List<Question> search(Map<String, String[]> params, int page, int size, Integer userId) {
         List<Question> filtered = new ArrayList<>(store.getQuestions());
 
         if (params.containsKey("subject") && !empty(params.get("subject")[0])) {
@@ -85,6 +89,13 @@ public class QuestionService {
             }
         }
 
+        if (userId != null && "Y".equalsIgnoreCase(param(params, "favorite", "N"))) {
+            Set<Integer> favorites = store.getFavorites(userId);
+            filtered = filtered.stream()
+                    .filter(q -> favorites.contains(q.getQId()))
+                    .collect(Collectors.toList());
+        }
+
         filtered.sort(Comparator.comparing(Question::getExamYear, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(Question::getExamRound, Comparator.nullsLast(Comparator.reverseOrder())));
 
@@ -93,8 +104,8 @@ public class QuestionService {
         return filtered.subList(from, to);
     }
 
-    public long count(Map<String, String[]> params) {
-        return search(params, 0, Integer.MAX_VALUE).size();
+    public long count(Map<String, String[]> params, Integer userId) {
+        return search(params, 0, Integer.MAX_VALUE, userId).size();
     }
 
     public List<Unit> getUnits() {
@@ -107,6 +118,35 @@ public class QuestionService {
 
     public List<Subject> getSubjects() {
         return new ArrayList<>(store.getSubjects());
+    }
+
+    public Set<Integer> getFavorites(int userId) {
+        return store.getFavorites(userId);
+    }
+
+    public StudyNote getStudyNote(int userId, int questionId) {
+        return store.findStudyNote(userId, questionId).orElse(null);
+    }
+
+    public void saveStudyNote(int userId, int questionId, String memo) {
+        StudyNote note = store.findStudyNote(userId, questionId)
+                .orElse(new StudyNote(userId, questionId, "", LocalDateTime.now()));
+        note.setMemo(memo);
+        note.setUpdatedAt(LocalDateTime.now());
+        store.saveStudyNote(note);
+    }
+
+    public void submitFeedback(int userId, int questionId, String type, String message) {
+        QuestionFeedback feedback = new QuestionFeedback(userId, questionId, type, message, LocalDateTime.now());
+        store.addFeedback(feedback);
+    }
+
+    public List<QuestionFeedback> getFeedbackForQuestion(int questionId) {
+        return store.getFeedbackForQuestion(questionId);
+    }
+
+    public List<UnitSummary> getUnitSummaries(int userId) {
+        return store.buildUnitSummaries(userId);
     }
 
     private boolean empty(String value) {

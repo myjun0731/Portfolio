@@ -38,6 +38,12 @@ public class GoalServlet extends HttpServlet {
         NavigableMap<java.time.LocalDate, Integer> history = studyService.getScoreHistory(user.getUserId());
         req.setAttribute("history", history);
         req.setAttribute("historyEntries", new ArrayList<>(history.entrySet()));
+        req.setAttribute("studyPlan", studyService.buildStudyPlan(user.getUserId()));
+        req.setAttribute("reminders", studyService.getReminders(user.getUserId()));
+        req.setAttribute("unitSummaries", studyService.getUnitSummaries(user.getUserId()));
+        req.setAttribute("conceptSummaries", studyService.getConceptSummaries());
+        req.setAttribute("stageRecommendations", studyService.buildStageRecommendations(user.getUserId()));
+        req.setAttribute("srsQueue", studyService.buildSrsQueue(user.getUserId()));
         req.setAttribute("activeNav", "goal");
         req.getRequestDispatcher("/WEB-INF/jsp/study-goal.jsp").forward(req, resp);
     }

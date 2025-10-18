@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="/WEB-INF/tld/cbt-core.tld" %>
+<%@ taglib prefix="fn" uri="/WEB-INF/tld/cbt-functions.tld" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -14,7 +15,11 @@
         <div class="page-hero__lede">
             <span class="badge soft">Result Analytics</span>
             <h1>📈 세션 결과</h1>
-            <p class="subtitle">정답 통계와 취약 단원을 확인하고 다음 학습 계획을 세워보세요.</p>
+            <p class="subtitle"><c:out value="${modeLabel}" default="기출 세션" />의 정답 통계와 취약 단원을 확인하고 다음 학습 계획을 세워보세요.</p>
+        </div>
+        <div class="hero-actions">
+            <a class="btn" href="${pageContext.request.contextPath}/exam/start">다른 시험 시작</a>
+            <a class="btn btn-ghost" href="${pageContext.request.contextPath}/study/wrong">오답 복습 이동</a>
         </div>
     </section>
 
@@ -82,10 +87,44 @@
 
     <section class="app-section compact">
         <div class="section-headline">
+            <h2>추천 문항</h2>
+            <div class="section-actions">
+                <span class="pill">유사 유형 ${fn:length(recommended)}문항</span>
+            </div>
+        </div>
+        <c:choose>
+            <c:when test="${empty recommended}">
+                <div class="alert">추천할 문항을 찾지 못했습니다. 태그 데이터를 확장하면 맞춤 추천이 강화됩니다.</div>
+            </c:when>
+            <c:otherwise>
+                <div class="question-collection__list compact">
+                    <c:forEach var="question" items="${recommended}">
+                        <article class="question-card small">
+                            <header>
+                                <div class="question-card__badge">
+                                    <span class="badge soft"><c:out value="${question.examYear}" default="미상" />년 <c:out value="${question.examRound}" default="" />회</span>
+                                    <span class="meta">난이도 <strong><c:out value="${question.diff}" /></strong></span>
+                                </div>
+                                <h2><c:out value="${question.stem}" /></h2>
+                            </header>
+                            <div class="tag-cloud">
+                                <c:forEach var="tag" items="${question.tags}">
+                                    <span class="tag-pill"><c:out value="${tag.name}" /></span>
+                                </c:forEach>
+                            </div>
+                        </article>
+                    </c:forEach>
+                </div>
+            </c:otherwise>
+        </c:choose>
+    </section>
+
+    <section class="app-section compact">
+        <div class="section-headline">
             <h2>문항별 결과</h2>
         </div>
         <table class="table result-table">
-            <thead><tr><th>번호</th><th>문항</th><th>결과</th></tr></thead>
+            <thead><tr><th>번호</th><th>문항</th><th>결과</th><th>리소스</th></tr></thead>
             <tbody>
             <c:forEach var="question" items="${questions}" varStatus="loop">
                 <c:set var="resp" value="${responses[question.qId]}" />
@@ -101,6 +140,27 @@
                         <c:choose>
                             <c:when test="${isCorrect}">정답</c:when>
                             <c:otherwise>오답</c:otherwise>
+                        </c:choose>
+                    </td>
+                    <td>
+                        <c:choose>
+                            <c:when test="${empty question.commentary and empty question.hint and empty question.videoUrl}">-</c:when>
+                            <c:otherwise>
+                                <details class="result-details">
+                                    <summary>보기</summary>
+                                    <div>
+                                        <c:if test="${not empty question.commentary}">
+                                            <p class="result-commentary"><strong>해설</strong> · <c:out value="${question.commentary}" /></p>
+                                        </c:if>
+                                        <c:if test="${not empty question.hint}">
+                                            <p class="result-hint"><strong>힌트</strong> · <c:out value="${question.hint}" /></p>
+                                        </c:if>
+                                        <c:if test="${not empty question.videoUrl}">
+                                            <p><a class="link" href="${question.videoUrl}" target="_blank" rel="noopener">해설 영상 시청</a></p>
+                                        </c:if>
+                                    </div>
+                                </details>
+                            </c:otherwise>
                         </c:choose>
                     </td>
                 </tr>

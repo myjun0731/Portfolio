@@ -3,7 +3,6 @@ package com.cbt.service;
 import com.cbt.model.*;
 import com.cbt.store.AppDataStore;
 
-import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -13,12 +12,57 @@ public class ExamService {
     private final AppDataStore store = AppDataStore.getInstance();
 
     public ExamSession startSession(User user, int paperId) {
+        return startSession(user, paperId, false, true);
+    }
+
+    public ExamSession startSession(User user, int paperId, boolean strictMode, boolean shuffleQuestions) {
         ExamPaper paper = store.getPapers().stream()
                 .filter(p -> p.getPaperId() == paperId)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("회차를 찾을 수 없습니다."));
         long seed = System.currentTimeMillis();
-        return store.createSession(user.getUserId(), paperId, seed, paper.getTimeLimitMin());
+        return store.createSession(user.getUserId(), paperId, seed, paper.getTimeLimitMin(),
+                strictMode ? "REAL" : "PAPER",
+                paper.getName(),
+                strictMode,
+                shuffleQuestions,
+                null);
+    }
+
+    public ExamSession startMockSession(User user, int count, Integer subjectId, Integer diff, boolean strictMode, boolean shuffle) {
+        List<Question> pool = new ArrayList<>(store.getQuestions());
+        if (subjectId != null) {
+            pool = pool.stream().filter(q -> q.getSubjectId() == subjectId).collect(Collectors.toList());
+        }
+        if (diff != null) {
+            pool = pool.stream().filter(q -> q.getDiff() == diff).collect(Collectors.toList());
+        }
+        if (pool.isEmpty()) {
+            throw new IllegalArgumentException("선택한 조건에 해당하는 문항이 없습니다.");
+        }
+        Collections.shuffle(pool, new Random(System.nanoTime()));
+        List<Integer> questionIds = pool.stream()
+                .limit(Math.max(1, count))
+                .map(Question::getQId)
+                .collect(Collectors.toList());
+        int timeLimit = Math.max(15, questionIds.size() * 2);
+        String label = "랜덤 모의 (" + questionIds.size() + "문항)";
+        return store.createSession(user.getUserId(), null, System.currentTimeMillis(), timeLimit,
+                strictMode ? "REAL" : "MOCK", label, strictMode, shuffle, questionIds);
+    }
+
+    public ExamSession startWrongRetrySession(User user, boolean strictMode, boolean shuffle) {
+        List<WrongNote> wrongs = store.getWrongNotes(user.getUserId());
+        if (wrongs.isEmpty()) {
+            throw new IllegalStateException("오답 노트가 비어 있습니다.");
+        }
+        List<Integer> questionIds = wrongs.stream()
+                .map(WrongNote::getQuestionId)
+                .distinct()
+                .collect(Collectors.toList());
+        int timeLimit = Math.max(15, questionIds.size() * 2);
+        return store.createSession(user.getUserId(), null, System.currentTimeMillis(), timeLimit,
+                "WRONG", "오답 재응시", strictMode, shuffle, questionIds);
     }
 
     public ExamSession resumeSession(int sessId) {
@@ -36,7 +80,7 @@ public class ExamService {
     }
 
     public List<Question> loadQuestionsForSession(ExamSession session) {
-        List<Integer> questionIds = store.getPaperQuestionIds(session.getPaperId());
+        List<Integer> questionIds = store.getSessionQuestionIds(session);
         List<Question> questions = questionIds.stream()
                 .map(store::findQuestion)
                 .flatMap(Optional::stream)
@@ -48,7 +92,9 @@ public class ExamService {
     }
 
     private void applyShuffle(ExamSession session, List<Question> questions) {
-        Collections.shuffle(questions, new Random(session.getSeed()));
+        if (session.isShuffleQuestions()) {
+            Collections.shuffle(questions, new Random(session.getSeed()));
+        }
         for (int i = 0; i < questions.size(); i++) {
             Question q = questions.get(i);
             List<QOption> options = q.getOptions().stream()
@@ -74,6 +120,8 @@ public class ExamService {
         copy.setExamRound(src.getExamRound());
         copy.setStem(src.getStem());
         copy.setCommentary(src.getCommentary());
+        copy.setHint(src.getHint());
+        copy.setVideoUrl(src.getVideoUrl());
         copy.setDiff(src.getDiff());
         copy.setType(src.getType());
         copy.setTags(new ArrayList<>(src.getTags()));
@@ -187,5 +235,20 @@ public class ExamService {
         Instant end = session.getEndAt().toInstant();
         long diff = Duration.between(Instant.now(), end).getSeconds();
         return Math.max(0, diff);
+    }
+
+    public List<ExamSession> history(int userId) {
+        return store.getSessionsForUser(userId);
+    }
+
+    public List<Question> recommendForSession(int sessId) {
+        ExamSession session = store.findSession(sessId)
+                .orElseThrow(() -> new IllegalArgumentException("세션을 찾을 수 없습니다."));
+        List<Integer> orderedIds = store.getSessionQuestionIds(session);
+        List<Question> originals = orderedIds.stream()
+                .map(store::findQuestion)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toList());
+        return store.recommendSimilarQuestions(originals, 5);
     }
 }
