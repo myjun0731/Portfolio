@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>문항 탐색</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
@@ -83,7 +83,7 @@
 
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary">검색 적용</button>
-                    <a class="btn btn-ghost" href="${pageContext.request.contextPath}/papers/quick">회차별 보기</a>
+                    <a class="btn btn-ghost" href="/papers/quick">회차별 보기</a>
                 </div>
             </form>
 
@@ -163,7 +163,7 @@
                                         <span class="meta">난이도 <strong><c:out value="${question.diff}" /></strong> · 유형 <c:out value="${question.type}" /></span>
                                     </div>
                                     <div class="question-card__actions">
-                                        <form method="post" action="${pageContext.request.contextPath}/questions/favorite" class="favorite-form">
+                                        <form method="post" action="/questions/favorite" class="favorite-form">
                                             <input type="hidden" name="qid" value="${question.qId}">
                                             <button type="submit" class="favorite-btn<c:if test="${favorites contains question.qId}"> is-active</c:if>" aria-label="즐겨찾기">★</button>
                                         </form>
@@ -195,7 +195,7 @@
                                 <div class="question-tools">
                                     <details>
                                         <summary>학습 노트</summary>
-                                        <form method="post" action="${pageContext.request.contextPath}/questions/note" class="note-form">
+                                        <form method="post" action="/questions/note" class="note-form">
                                             <input type="hidden" name="qid" value="${question.qId}">
                                             <textarea name="memo" rows="2" placeholder="개인 메모를 남겨보세요.">${notes[question.qId].memo}</textarea>
                                             <button type="submit" class="btn btn-ghost">노트 저장</button>
@@ -203,7 +203,7 @@
                                     </details>
                                     <details>
                                         <summary>문항 피드백 (<c:out value="${feedbackCounts[question.qId]}" />)</summary>
-                                        <form method="post" action="${pageContext.request.contextPath}/questions/feedback" class="feedback-form">
+                                        <form method="post" action="/questions/feedback" class="feedback-form">
                                             <input type="hidden" name="qid" value="${question.qId}">
                                             <label class="filter-field">
                                                 <span>유형</span>

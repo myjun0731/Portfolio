@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <title>연·회차 바로가기</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
@@ -26,7 +26,7 @@
             </div>
             <div class="section-actions">
                 <span class="pill">총 <c:out value="${paperCount}" />회차</span>
-                <a class="btn btn-ghost" href="${pageContext.request.contextPath}/questions">문항 탐색</a>
+                <a class="btn btn-ghost" href="/questions">문항 탐색</a>
             </div>
         </div>
         <c:choose>
@@ -47,7 +47,7 @@
                             <c:if test="${paper.hasMissingQuestions}">
                                 <p class="paper-card__alert">일부 문항이 누락되어 대체 문항이 자동 매핑됩니다.</p>
                             </c:if>
-                            <form method="post" action="${pageContext.request.contextPath}/exam/start" class="paper-card__actions">
+                            <form method="post" action="/exam/start" class="paper-card__actions">
                                 <input type="hidden" name="paperId" value="${paper.paperId}">
                                 <button type="submit" class="btn btn-primary">바로 응시</button>
                             </form>

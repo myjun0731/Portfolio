@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>응시 세션 생성</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
@@ -66,7 +66,7 @@
                     </label>
                 </div>
                 <div class="form-actions">
-                    <a href="${pageContext.request.contextPath}/papers/quick" class="btn btn-ghost">회차 목록</a>
+                    <a href="/papers/quick" class="btn btn-ghost">회차 목록</a>
                     <button type="submit" class="btn btn-primary" <c:if test="${paperCount == 0}">disabled</c:if>>세션 시작</button>
                 </div>
             </form>

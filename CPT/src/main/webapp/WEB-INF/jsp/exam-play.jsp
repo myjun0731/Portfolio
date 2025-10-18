@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>CBT 응시</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="exam-body">
 <div class="exam-shell">
@@ -30,7 +30,7 @@
             </section>
         </c:if>
         <section class="exam-sidebar__section">
-            <form id="submitForm" method="post" action="${pageContext.request.contextPath}/exam/submit" class="exam-submit">
+            <form id="submitForm" method="post" action="/exam/submit" class="exam-submit">
                 <input type="hidden" name="sid" value="${examSession.sessId}">
                 <button type="submit" class="btn btn-primary">시험 제출</button>
             </form>
@@ -183,7 +183,7 @@
         if (choice) { payload.append('choice', choice); }
         payload.append('elapsed', <c:out value="${examSession.timeLimitMin}" default="0" /> * 60 - remaining);
         payload.append('flag', flags.has(qid) ? 'Y' : 'N');
-        const task = () => fetch('${pageContext.request.contextPath}/exam/answer', {
+        const task = () => fetch('/exam/answer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: payload.toString()
@@ -238,7 +238,7 @@
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            navigator.sendBeacon('${pageContext.request.contextPath}/exam/focus', new URLSearchParams({ sid: sessionId }));
+            navigator.sendBeacon('/exam/focus', new URLSearchParams({ sid: sessionId }));
         }
     });
 

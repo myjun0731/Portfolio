@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>학습 목표 & 리포트</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />

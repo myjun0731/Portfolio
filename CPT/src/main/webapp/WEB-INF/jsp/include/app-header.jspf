@@ -10,12 +10,12 @@
     </div>
     <button class="app-nav__toggle" type="button" aria-expanded="false" aria-controls="globalNav">메뉴</button>
     <nav class="app-nav" id="globalNav">
-        <a href="${pageContext.request.contextPath}/main" class="app-nav__link<c:if test="${activeNavKey eq 'dashboard'}"> is-active</c:if>">대시보드</a>
-        <a href="${pageContext.request.contextPath}/questions" class="app-nav__link<c:if test="${activeNavKey eq 'questions'}"> is-active</c:if>">문항 탐색</a>
-        <a href="${pageContext.request.contextPath}/papers/quick" class="app-nav__link<c:if test="${activeNavKey eq 'papers'}"> is-active</c:if>">연·회차</a>
-        <a href="${pageContext.request.contextPath}/exam/history" class="app-nav__link<c:if test="${activeNavKey eq 'history'}"> is-active</c:if>">응시 기록</a>
-        <a href="${pageContext.request.contextPath}/study/wrong" class="app-nav__link<c:if test="${activeNavKey eq 'wrong'}"> is-active</c:if>">오답 노트</a>
-        <a href="${pageContext.request.contextPath}/study/goal" class="app-nav__link<c:if test="${activeNavKey eq 'goal'}"> is-active</c:if>">학습 목표</a>
+        <a href="/main" class="app-nav__link<c:if test="${activeNavKey eq 'dashboard'}"> is-active</c:if>">대시보드</a>
+        <a href="/questions" class="app-nav__link<c:if test="${activeNavKey eq 'questions'}"> is-active</c:if>">문항 탐색</a>
+        <a href="/papers/quick" class="app-nav__link<c:if test="${activeNavKey eq 'papers'}"> is-active</c:if>">연·회차</a>
+        <a href="/exam/history" class="app-nav__link<c:if test="${activeNavKey eq 'history'}"> is-active</c:if>">응시 기록</a>
+        <a href="/study/wrong" class="app-nav__link<c:if test="${activeNavKey eq 'wrong'}"> is-active</c:if>">오답 노트</a>
+        <a href="/study/goal" class="app-nav__link<c:if test="${activeNavKey eq 'goal'}"> is-active</c:if>">학습 목표</a>
     </nav>
     <div class="app-preferences">
         <button type="button" class="pref-btn" data-theme-toggle aria-label="테마 전환">🌙</button>
@@ -31,7 +31,7 @@
                 <span class="account-label">접속 중</span>
                 <span class="account-name"><c:out value="${sessionScope.user.name}" /></span>
             </div>
-            <a href="${pageContext.request.contextPath}/logout" class="btn btn-ghost">로그아웃</a>
+            <a href="/logout" class="btn btn-ghost">로그아웃</a>
         </c:if>
     </div>
 </header>

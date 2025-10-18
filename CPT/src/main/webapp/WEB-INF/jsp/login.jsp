@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - 정보처리산업기사 CBT</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="auth-body">
 <div class="auth-grid">
@@ -36,7 +36,7 @@
             </div>
         </c:if>
 
-        <form method="post" action="${pageContext.request.contextPath}/login" class="form-grid auth-form">
+        <form method="post" action="/login" class="form-grid auth-form">
             <div class="form-field">
                 <label for="email">이메일</label>
                 <input type="email" id="email" name="email" placeholder="admin@test.com" required autocomplete="username">

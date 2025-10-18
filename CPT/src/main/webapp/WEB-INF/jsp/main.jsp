@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>대시보드 - 정보처리산업기사 CBT</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
@@ -18,8 +18,8 @@
             <p class="subtitle">문항 큐레이션부터 시험 응시, 결과 분석과 복습까지 Claude 감성의 단일 워크플로우로 제공합니다.</p>
         </div>
         <div class="hero-actions">
-            <a class="btn btn-primary" href="${pageContext.request.contextPath}/exam/start">CBT 응시 시작</a>
-            <a class="btn btn-ghost" href="${pageContext.request.contextPath}/questions">문항 탐색 열기</a>
+            <a class="btn btn-primary" href="/exam/start">CBT 응시 시작</a>
+            <a class="btn btn-ghost" href="/questions">문항 탐색 열기</a>
         </div>
     </section>
 
@@ -173,10 +173,10 @@
                             <c:if test="${paper.hasMissingQuestions}">
                                 <p class="paper-card__alert">일부 문항 누락 → 대체 문항이 자동 적용됩니다.</p>
                             </c:if>
-                            <form method="post" action="${pageContext.request.contextPath}/exam/start" class="paper-card__actions">
+                            <form method="post" action="/exam/start" class="paper-card__actions">
                                 <input type="hidden" name="paperId" value="${paper.paperId}">
                                 <button type="submit" class="btn btn-primary">이 회차 응시</button>
-                                <a class="btn btn-ghost" href="${pageContext.request.contextPath}/papers/quick">세부 정보</a>
+                                <a class="btn btn-ghost" href="/papers/quick">세부 정보</a>
                             </form>
                         </article>
                     </c:forEach>

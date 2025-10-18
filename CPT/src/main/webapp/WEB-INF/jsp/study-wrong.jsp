@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>오답 노트</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
@@ -19,7 +19,7 @@
         </div>
         <c:if test="${fn:length(retry) > 0}">
             <div class="hero-actions">
-                <a class="btn" href="${pageContext.request.contextPath}/exam/start?action=wrong">오답 세션 생성</a>
+                <a class="btn" href="/exam/start?action=wrong">오답 세션 생성</a>
             </div>
         </c:if>
     </section>
@@ -55,7 +55,7 @@
                                     </c:if>
                                 </div>
                             </c:if>
-                            <form method="post" action="${pageContext.request.contextPath}/study/review" class="review-form">
+                            <form method="post" action="/study/review" class="review-form">
                                 <input type="hidden" name="qid" value="${question.qId}">
                                 <label class="review-flag">
                                     <input type="checkbox" name="star" value="Y"> 즐겨찾기

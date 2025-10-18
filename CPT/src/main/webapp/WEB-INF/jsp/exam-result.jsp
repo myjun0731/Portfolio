@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <title>결과 리포트</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="app-frame">
 <jsp:include page="/WEB-INF/jsp/include/app-header.jspf" />
@@ -18,8 +18,8 @@
             <p class="subtitle"><c:out value="${modeLabel}" default="기출 세션" />의 정답 통계와 취약 단원을 확인하고 다음 학습 계획을 세워보세요.</p>
         </div>
         <div class="hero-actions">
-            <a class="btn" href="${pageContext.request.contextPath}/exam/start">다른 시험 시작</a>
-            <a class="btn btn-ghost" href="${pageContext.request.contextPath}/study/wrong">오답 복습 이동</a>
+            <a class="btn" href="/exam/start">다른 시험 시작</a>
+            <a class="btn btn-ghost" href="/study/wrong">오답 복습 이동</a>
         </div>
     </section>
 
