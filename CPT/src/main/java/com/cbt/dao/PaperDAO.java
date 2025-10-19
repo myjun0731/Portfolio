@@ -17,22 +17,14 @@ public class PaperDAO {
                      "FROM EXAM_PAPER ORDER BY EXAM_YEAR DESC NULLS LAST, " +
                      "EXAM_ROUND DESC NULLS LAST, PAPER_ID DESC";
 
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-
-        try {
-            conn = DBUtil.getConnection();
-            pstmt = conn.prepareStatement(sql);
-            rs = pstmt.executeQuery();
-
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
             List<ExamPaper> papers = new ArrayList<>();
             while (rs.next()) {
                 papers.add(mapPaper(rs));
             }
             return papers;
-        } finally {
-            DBUtil.closeAll(conn, pstmt, rs);
         }
     }
 
@@ -40,22 +32,15 @@ public class PaperDAO {
         String sql = "SELECT PAPER_ID, NAME, MODE, EXAM_YEAR, EXAM_ROUND, TIME_LIMIT_MIN " +
                      "FROM EXAM_PAPER WHERE PAPER_ID = ?";
 
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-
-        try {
-            conn = DBUtil.getConnection();
-            pstmt = conn.prepareStatement(sql);
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, paperId);
-            rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return mapPaper(rs);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapPaper(rs);
+                }
             }
             return null;
-        } finally {
-            DBUtil.closeAll(conn, pstmt, rs);
         }
     }
 

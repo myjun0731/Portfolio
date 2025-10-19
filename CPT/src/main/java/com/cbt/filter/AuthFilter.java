@@ -22,6 +22,7 @@ public class AuthFilter implements Filter {
         if (user == null) {
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
         } else {
+            request.setAttribute("user", user);
             chain.doFilter(request, response);
         }
     }

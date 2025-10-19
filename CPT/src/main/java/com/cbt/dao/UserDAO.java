@@ -2,42 +2,41 @@ package com.cbt.dao;
 
 import com.cbt.model.User;
 import com.cbt.util.DBUtil;
-import java.sql.*;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class UserDAO {
     
     public User login(String email, String password) throws SQLException {
         String sql = "SELECT USER_ID, EMAIL, NAME, ROLE FROM USER_ACCT WHERE EMAIL = ? AND PWD_HASH = ?";
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        
-        try {
-            conn = DBUtil.getConnection();
-            pstmt = conn.prepareStatement(sql);
+
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, email);
             pstmt.setString(2, hashPassword(password));
-            rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                User user = new User();
-                user.setUserId(rs.getInt("USER_ID"));
-                user.setEmail(rs.getString("EMAIL"));
-                user.setName(rs.getString("NAME"));
-                user.setRole(rs.getString("ROLE"));
-                return user;
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setUserId(rs.getInt("USER_ID"));
+                    user.setEmail(rs.getString("EMAIL"));
+                    user.setName(rs.getString("NAME"));
+                    user.setRole(rs.getString("ROLE"));
+                    return user;
+                }
             }
             return null;
-        } finally {
-            DBUtil.closeAll(conn, pstmt, rs);
         }
     }
     
     private String hashPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(password.getBytes("UTF-8"));
+            byte[] hash = md.digest(password.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (byte b : hash) {
                 sb.append(String.format("%02x", b));
@@ -50,12 +49,9 @@ public class UserDAO {
     
     public void logAudit(int userId, String action, String target, String ip) throws SQLException {
         String sql = "INSERT INTO AUDIT (AUDIT_ID, USER_ID, ACTION, TARGET, IP) " +
-                     "VALUES (SEQ_AUDIT.NEXTVAL, ?, ?, ?, ?)";
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        try {
-            conn = DBUtil.getConnection();
-            pstmt = conn.prepareStatement(sql);
+                "VALUES (SEQ_AUDIT.NEXTVAL, ?, ?, ?, ?)";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
             pstmt.setString(2, action);
             pstmt.setString(3, target);
@@ -65,9 +61,6 @@ public class UserDAO {
             if (!isMissingAuditObject(ex)) {
                 throw ex;
             }
-        } finally {
-            DBUtil.close(pstmt);
-            DBUtil.close(conn);
         }
     }
 
