@@ -76,7 +76,8 @@
                 ]
             }
         ],
-        selectedId: 'file-new-map'
+        selectedId: 'file-new-map',
+        filter: ''
     };
 
     // UI 상태 객체에 dragStartPos 추가
@@ -104,6 +105,8 @@
     const modalOverlay = document.getElementById('app-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
+    const toastStack = document.getElementById('toast-stack');
+    const autosaveIndicator = document.getElementById('autosave-indicator');
 
     const GRID_BASE_SIZE = 20;
     const THEME_STORAGE_KEY = 'collamind-theme';
@@ -927,6 +930,43 @@
     // 트리 이벤트 설정
     function setupTreeEvents() {
         renderProjectTree();
+
+        const searchInput = document.getElementById('project-search');
+        const clearButton = document.getElementById('project-search-clear');
+
+        if (searchInput) {
+            searchInput.value = projectExplorerState.filter;
+            searchInput.addEventListener('input', () => {
+                projectExplorerState.filter = searchInput.value.trim();
+                renderProjectTree();
+            });
+        }
+
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                projectExplorerState.filter = '';
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+                renderProjectTree();
+            });
+        }
+
+        updateProjectSearchUI();
+    }
+
+    function updateProjectSearchUI() {
+        const searchInput = document.getElementById('project-search');
+        const clearButton = document.getElementById('project-search-clear');
+
+        if (!clearButton) return;
+
+        if (searchInput && searchInput.value.trim().length > 0) {
+            clearButton.classList.add('is-visible');
+        } else {
+            clearButton.classList.remove('is-visible');
+        }
     }
 
     function renderProjectTree() {
@@ -935,15 +975,33 @@
 
         container.innerHTML = '';
         const fragment = document.createDocumentFragment();
+        const filterText = (projectExplorerState.filter || '').trim().toLowerCase();
+        let hasVisibleNodes = false;
 
         projectExplorerState.treeData.forEach(node => {
-            fragment.appendChild(createTreeNodeElement(node, 0));
+            const nodeFragment = createTreeNodeElement(node, 0, filterText);
+            if (nodeFragment) {
+                fragment.appendChild(nodeFragment);
+                hasVisibleNodes = true;
+            }
         });
 
-        container.appendChild(fragment);
+        if (hasVisibleNodes) {
+            container.appendChild(fragment);
+        } else {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.className = 'tree-empty';
+            emptyMessage.textContent = filterText ? '검색 결과가 없습니다.' : '표시할 항목이 없습니다.';
+            container.appendChild(emptyMessage);
+        }
+
+        updateProjectSearchUI();
     }
 
-    function createTreeNodeElement(node, level) {
+    function createTreeNodeElement(node, level, filterText) {
+        const matchesFilter = !filterText || node.name.toLowerCase().includes(filterText) ||
+            (node.fileName && node.fileName.toLowerCase().includes(filterText));
+
         const fragment = document.createDocumentFragment();
         const item = document.createElement('div');
         item.classList.add('tree-item');
@@ -955,11 +1013,34 @@
             item.classList.add('selected');
         }
 
+        if (matchesFilter && filterText) {
+            item.classList.add('match');
+        }
+
         const icon = document.createElement('div');
         icon.classList.add('tree-icon');
 
+        const childFragments = [];
+        let visibleChildCount = 0;
+
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                const childFragment = createTreeNodeElement(child, level + 1, filterText);
+                if (childFragment) {
+                    childFragments.push(childFragment);
+                    visibleChildCount++;
+                }
+            });
+        }
+
+        if (!matchesFilter && visibleChildCount === 0) {
+            return null;
+        }
+
+        const isExpanded = filterText ? true : !!node.expanded;
+
         if (node.type === 'folder') {
-            icon.classList.add(node.expanded ? 'expanded' : 'collapsed');
+            icon.classList.add(isExpanded ? 'expanded' : 'collapsed');
             icon.addEventListener('click', e => {
                 e.stopPropagation();
                 toggleFolder(node.id);
@@ -991,13 +1072,13 @@
 
         fragment.appendChild(item);
 
-        if (node.children && node.children.length > 0) {
+        if (visibleChildCount > 0) {
             const childrenContainer = document.createElement('div');
             childrenContainer.classList.add('tree-children');
-            childrenContainer.style.display = node.expanded ? 'flex' : 'none';
+            childrenContainer.style.display = isExpanded ? 'flex' : 'none';
 
-            node.children.forEach(child => {
-                childrenContainer.appendChild(createTreeNodeElement(child, level + 1));
+            childFragments.forEach(childFragment => {
+                childrenContainer.appendChild(childFragment);
             });
 
             fragment.appendChild(childrenContainer);
@@ -1090,6 +1171,12 @@
 
     // UI 이벤트 설정
     function setupUIEvents() {
+        document.querySelectorAll('.app-action[data-action]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                executeAction(this.dataset.action);
+            });
+        });
+
         // 컨텍스트 메뉴
         document.querySelectorAll('.context-menu-item').forEach(item => {
             item.addEventListener('click', function() {
@@ -1876,10 +1963,12 @@
         setDirty(false);
         captureSnapshot('새 문서');
         log('info', '새 문서가 생성되었습니다.');
+        showToast('새 마인드맵을 시작했습니다.', 'info');
     }
 
     function saveDocument() {
         // 실제 구현에서는 서버로 데이터 전송
+        updateAutosaveIndicator('saving', '저장 중…');
         const data = exportToJSON();
         localStorage.setItem('mindmap-autosave', data);
         setDirty(false);
@@ -1888,6 +1977,7 @@
             lastSnapshot.dirty = false;
         }
         log('info', '문서가 저장되었습니다.');
+        showToast('문서가 저장되었습니다.', 'success');
     }
 
     function saveAsDocument() {
@@ -1895,9 +1985,11 @@
         const fileName = prompt('저장할 파일 이름을 입력하세요.', suggestedName);
         if (!fileName) {
             log('warn', '저장이 취소되었습니다.');
+            showToast('저장이 취소되었습니다.', 'warn');
             return;
         }
 
+        updateAutosaveIndicator('saving', '저장 중…');
         const downloadName = fileName.toLowerCase().endsWith('.json') ? fileName : `${fileName}.json`;
         const data = exportToJSON();
         const blob = new Blob([data], { type: 'application/json' });
@@ -1913,6 +2005,7 @@
             lastSnapshot.dirty = false;
         }
         log('info', `문서가 "${downloadName}" 파일로 저장되었습니다.`);
+        showToast(`"${downloadName}"(으)로 저장했습니다.`, 'success');
     }
 
     function openDocument() {
@@ -1923,6 +2016,7 @@
             log('info', '문서가 열렸습니다.');
         } else {
             log('warn', '저장된 문서가 없습니다.');
+            showToast('저장된 문서가 없습니다.', 'warn');
         }
     }
 
@@ -1936,6 +2030,7 @@
             data = JSON.parse(jsonData);
         } catch (error) {
             log('error', '문서 불러오기 실패: ' + error.message);
+            showToast('문서를 불러오는 데 실패했습니다.', 'error');
             return;
         }
 
@@ -1961,6 +2056,7 @@
         history.undoStack.length = 0;
         history.redoStack.length = 0;
         captureSnapshot('문서 불러오기');
+        showToast('문서를 불러왔습니다.', 'success');
     }
 
     // === 줌 및 뷰 관리 ===
@@ -2249,6 +2345,8 @@
                 tab.classList.remove('modified');
             }
         }
+
+        updateAutosaveIndicator(dirty ? 'dirty' : 'saved', dirty ? '수정됨' : '저장됨');
     }
 
     function showContextMenu(x, y) {
@@ -2269,6 +2367,62 @@
 
     function hideContextMenu() {
         contextMenu.style.display = 'none';
+    }
+
+    function showToast(message, level = 'info') {
+        if (!toastStack || !message) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${level}`;
+        toast.textContent = message;
+
+        while (toastStack.children.length >= 5) {
+            const first = toastStack.firstElementChild || toastStack.firstChild;
+            if (!first) {
+                break;
+            }
+            toastStack.removeChild(first);
+        }
+
+        toastStack.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.classList.add('visible');
+        });
+
+        const duration = level === 'error' ? 5200 : 3600;
+        setTimeout(() => {
+            toast.classList.remove('visible');
+            setTimeout(() => {
+                toast.remove();
+            }, 250);
+        }, duration);
+    }
+
+    function updateAutosaveIndicator(state, label) {
+        if (!autosaveIndicator) return;
+
+        if (state) {
+            autosaveIndicator.dataset.state = state;
+        } else {
+            autosaveIndicator.removeAttribute('data-state');
+        }
+
+        if (label) {
+            autosaveIndicator.textContent = label;
+            return;
+        }
+
+        switch (state) {
+            case 'dirty':
+                autosaveIndicator.textContent = '수정됨';
+                break;
+            case 'saving':
+                autosaveIndicator.textContent = '저장 중…';
+                break;
+            default:
+                autosaveIndicator.textContent = '저장됨';
+        }
     }
 
     function log(level, message) {

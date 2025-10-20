@@ -11,7 +11,34 @@
 
 </head>
 <body>
-	<!-- 메뉴바 -->
+        <div class="app-shell">
+                <header class="app-header" role="banner">
+                        <div class="brand">
+                                <span class="brand-logo">CollaMind</span>
+                                <span class="brand-subtitle">아이디어를 구조화하고 팀과 공유하세요</span>
+                        </div>
+                        <div class="header-actions">
+                                <div class="autosave-indicator" id="autosave-indicator" data-state="saved" aria-live="polite">
+                                        저장됨
+                                </div>
+                                <div class="header-buttons">
+                                        <button class="header-btn app-action" type="button" data-action="new">
+                                                <span class="btn-icon">＋</span>
+                                                새 마인드맵
+                                        </button>
+                                        <button class="header-btn app-action" type="button" data-action="save">
+                                                <span class="btn-icon">💾</span>
+                                                저장
+                                        </button>
+                                        <button class="header-btn app-action" type="button" data-action="toggletheme">
+                                                <span class="btn-icon">🌓</span>
+                                                테마 전환
+                                        </button>
+                                </div>
+                        </div>
+                </header>
+
+        <!-- 메뉴바 -->
         <div class="menu-bar" role="menubar">
                 <div class="menu-item" data-menu="file" role="menuitem" aria-haspopup="true" tabindex="0">
                         File
@@ -194,17 +221,24 @@
 		</button>
 	</div>
 
-	<!-- 메인 컨테이너 -->
-	<div class="main-container">
-		<!-- 왼쪽 패널: 프로젝트 익스플로러 -->
-		<div class="left-panel">
-			<div class="panel-header">
-				📁 프로젝트 익스플로러
+        <!-- 메인 컨테이너 -->
+        <div class="main-container">
+                <!-- 왼쪽 패널: 프로젝트 익스플로러 -->
+                <div class="left-panel">
+                        <div class="panel-header">
+                                <span class="panel-title">📁 프로젝트 익스플로러</span>
                                 <div class="panel-controls">
                                         <button class="panel-btn" data-action="refresh" title="프로젝트 새로고침">🔄</button>
                                         <button class="panel-btn" data-action="collapse" title="폴더 펼치기/접기">📁</button>
                                         <button class="panel-btn" data-action="toggleleftpanel" title="왼쪽 패널 숨기기">⬅️</button>
                                 </div>
+                        </div>
+                        <div class="panel-toolbar">
+                                <label class="search-field" for="project-search">
+                                        <span class="search-icon">🔍</span>
+                                        <input type="search" id="project-search" placeholder="파일 또는 폴더 검색" autocomplete="off">
+                                        <button type="button" class="clear-search" id="project-search-clear" aria-label="검색 지우기">×</button>
+                                </label>
                         </div>
                         <div class="panel-content">
                                 <div class="project-tree" id="project-tree"></div>
@@ -292,17 +326,17 @@
 	</div>
 
 	<!-- 하단 패널: 콘솔 -->
-	<div class="bottom-panel">
-		<div class="panel-header">
-			📝 콘솔
-			<div class="panel-controls">
-				<button class="panel-btn" data-action="clear">🗑️</button>
-			</div>
-		</div>
-		<div class="console-content" id="console">
-			<div class="log-info">[INFO] 마인드맵 에디터 초기화 완료</div>
-			<div class="log-info">[INFO] 캔버스 크기: 800x600</div>
-			<div class="log-info">[INFO] 노드 4개 로드됨</div>
+        <div class="bottom-panel">
+                <div class="panel-header">
+                        📝 콘솔
+                        <div class="panel-controls">
+                                <button class="panel-btn" data-action="clear">🗑️</button>
+                        </div>
+                </div>
+                <div class="console-content" id="console" role="log" aria-live="polite">
+                        <div class="log-info">[INFO] 마인드맵 에디터 초기화 완료</div>
+                        <div class="log-info">[INFO] 캔버스 크기: 800x600</div>
+                        <div class="log-info">[INFO] 노드 4개 로드됨</div>
 			<div class="log-debug">[DEBUG] 드래그 앤 드롭 이벤트 리스너 등록</div>
 		</div>
 	</div>
@@ -367,8 +401,10 @@
                 </div>
         </div>
 
+        <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
 <script defer src="mindmap.js"></script>
 
+        </div>
 </body>
 </html>
