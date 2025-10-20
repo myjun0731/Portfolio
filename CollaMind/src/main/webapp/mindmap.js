@@ -114,6 +114,121 @@
     const GRID_BASE_SIZE = 20;
     const THEME_STORAGE_KEY = 'collamind-theme';
 
+    const themePalette = {
+        nodeBaseBg: '#1f1f1f',
+        nodeBaseText: '#f5f5f5',
+        nodeBaseBorder: '#3a3a3a',
+        nodeRootBg: '#f5f5f5',
+        nodeRootText: '#080808',
+        nodeRootBorder: '#d0d0d0',
+        gridColor: 'rgba(255, 255, 255, 0.06)',
+        edgeColor: '#666666',
+        minimapBackground: '#1f1f1f',
+        minimapNode: '#3a3a3a',
+        minimapRoot: '#f5f5f5',
+        danger: '#f25c5c'
+    };
+
+    function readCssVar(styles, name, fallback) {
+        const value = styles.getPropertyValue(name).trim();
+        return value || fallback;
+    }
+
+    function refreshThemePalette() {
+        const previous = { ...themePalette };
+        const styles = body ? getComputedStyle(body) : getComputedStyle(document.documentElement);
+        themePalette.nodeBaseBg = readCssVar(styles, '--node-base-bg', themePalette.nodeBaseBg);
+        themePalette.nodeBaseText = readCssVar(styles, '--node-base-text', themePalette.nodeBaseText);
+        themePalette.nodeBaseBorder = readCssVar(styles, '--node-base-border', themePalette.nodeBaseBorder);
+        themePalette.nodeRootBg = readCssVar(styles, '--node-root-bg', themePalette.nodeRootBg);
+        themePalette.nodeRootText = readCssVar(styles, '--node-root-text', themePalette.nodeRootText);
+        themePalette.nodeRootBorder = readCssVar(styles, '--node-root-border', themePalette.nodeRootBorder);
+        themePalette.gridColor = readCssVar(styles, '--grid-color', themePalette.gridColor);
+        themePalette.edgeColor = readCssVar(styles, '--accent-border', themePalette.edgeColor);
+        themePalette.minimapBackground = readCssVar(styles, '--surface-1', themePalette.minimapBackground);
+        themePalette.minimapNode = readCssVar(styles, '--node-base-border', themePalette.minimapNode);
+        themePalette.minimapRoot = readCssVar(styles, '--node-root-bg', themePalette.minimapRoot);
+        themePalette.danger = readCssVar(styles, '--danger', themePalette.danger);
+        return previous;
+    }
+
+    function normalizeColor(value) {
+        if (!value) return '';
+        const trimmed = value.trim().toLowerCase();
+        if (trimmed.startsWith('#')) {
+            return trimmed;
+        }
+        const match = trimmed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (match) {
+            const [, r, g, b] = match;
+            const toHex = num => Number.parseInt(num, 10).toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+        return trimmed;
+    }
+
+    function colorsEqual(a, b) {
+        return normalizeColor(a) === normalizeColor(b);
+    }
+
+    function applyGridBackground() {
+        if (!canvas) return;
+        canvas.style.backgroundImage = `radial-gradient(circle, ${themePalette.gridColor} 1px, transparent 1px)`;
+        canvas.style.backgroundSize = `${GRID_BASE_SIZE}px ${GRID_BASE_SIZE}px`;
+        canvas.dataset.grid = 'on';
+    }
+
+    function syncNodeElementStyle(node) {
+        if (!node.element) return;
+        const defaults = getDefaultStyle(node.isRoot);
+        if (colorsEqual(node.style.backgroundColor, defaults.backgroundColor)) {
+            node.element.style.backgroundColor = '';
+        } else {
+            node.element.style.backgroundColor = node.style.backgroundColor;
+        }
+        if (colorsEqual(node.style.color, defaults.color)) {
+            node.element.style.color = '';
+        } else {
+            node.element.style.color = node.style.color;
+        }
+        if (colorsEqual(node.style.borderColor, defaults.borderColor)) {
+            node.element.style.borderColor = '';
+        } else {
+            node.element.style.borderColor = node.style.borderColor;
+        }
+        node.element.style.fontSize = `${node.style.fontSize}px`;
+    }
+
+    function updateNodesForThemeChange(previousPalette) {
+        mindmapState.nodes.forEach(node => {
+            if (!node.style) {
+                node.style = { ...getDefaultStyle(node.isRoot) };
+            }
+            const currentDefaults = getDefaultStyle(node.isRoot);
+            const prevDefaults = node.isRoot
+                ? {
+                    backgroundColor: previousPalette.nodeRootBg,
+                    color: previousPalette.nodeRootText,
+                    borderColor: previousPalette.nodeRootBorder
+                }
+                : {
+                    backgroundColor: previousPalette.nodeBaseBg,
+                    color: previousPalette.nodeBaseText,
+                    borderColor: previousPalette.nodeBaseBorder
+                };
+
+            const matchesPreviousDefaults = colorsEqual(node.style.backgroundColor, prevDefaults.backgroundColor) &&
+                colorsEqual(node.style.color, prevDefaults.color) &&
+                colorsEqual(node.style.borderColor, prevDefaults.borderColor);
+
+            if (matchesPreviousDefaults) {
+                node.style = { ...node.style, ...currentDefaults };
+            }
+
+            applyStyleToNode(node, {});
+        });
+    }
+
     let selectionBox = null;
     let selectionStart = null;
     let isSelecting = false;
@@ -225,12 +340,8 @@
 
             const style = nodeData.style ? { ...nodeData.style } : getDefaultStyle(nodeData.isRoot);
             if (typeof style.fontSize !== 'number') {
-                style.fontSize = parseInt(style.fontSize) || 14;
+                style.fontSize = parseInt(style.fontSize, 10) || 14;
             }
-            nodeElement.style.backgroundColor = style.backgroundColor;
-            nodeElement.style.color = style.color;
-            nodeElement.style.borderColor = style.borderColor;
-            nodeElement.style.fontSize = `${style.fontSize}px`;
 
             if (anchor) {
                 container.insertBefore(nodeElement, anchor);
@@ -241,7 +352,7 @@
             nodeElement.addEventListener('mousedown', onNodeMouseDown);
             nodeElement.addEventListener('dblclick', onNodeDoubleClick);
 
-            mindmapState.nodes.set(nodeData.id, {
+            const nodeRecord = {
                 id: nodeData.id,
                 text: nodeData.text,
                 x: nodeData.x,
@@ -249,8 +360,10 @@
                 parentId: nodeData.parentId || null,
                 element: nodeElement,
                 isRoot: !!nodeData.isRoot,
-                style
-            });
+                style: { ...style }
+            };
+            mindmapState.nodes.set(nodeData.id, nodeRecord);
+            applyStyleToNode(nodeRecord, nodeRecord.style);
         });
 
         const maxNodeId = (stateData.nodes || []).reduce((max, node) => {
@@ -346,6 +459,8 @@
         }
 
         loadThemePreference();
+        refreshThemePalette();
+        applyGridBackground();
 
         // 캔버스 크기 조정
         resizeCanvas();
@@ -376,8 +491,12 @@
         document.querySelectorAll('.mind-node').forEach(nodeEl => {
             const id = nodeEl.dataset.id;
             const parentId = nodeEl.dataset.parent || null;
-            const rect = nodeEl.getBoundingClientRect();
-            const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
+            const computed = window.getComputedStyle(nodeEl);
+            const defaults = getDefaultStyle(nodeEl.classList.contains('root'));
+            const backgroundColor = normalizeColor(nodeEl.style.backgroundColor || computed.backgroundColor) || defaults.backgroundColor;
+            const color = normalizeColor(nodeEl.style.color || computed.color) || defaults.color;
+            const borderColor = normalizeColor(nodeEl.style.borderColor || computed.borderColor) || defaults.borderColor;
+            const fontSize = parseInt(nodeEl.style.fontSize || computed.fontSize || defaults.fontSize, 10) || defaults.fontSize;
 
             const node = {
                 id: id,
@@ -388,14 +507,15 @@
                 element: nodeEl,
                 isRoot: nodeEl.classList.contains('root'),
                 style: {
-                    backgroundColor: nodeEl.classList.contains('root') ? '#0e7db8' : '#505050',
-                    color: '#ffffff',
-                    borderColor: nodeEl.classList.contains('root') ? '#1890d9' : '#666666',
-                    fontSize: 14
+                    backgroundColor,
+                    color,
+                    borderColor,
+                    fontSize
                 }
             };
 
             mindmapState.nodes.set(id, node);
+            applyStyleToNode(node, {});
 
             // 연결 생성
             if (parentId && mindmapState.nodes.has(parentId)) {
@@ -605,7 +725,7 @@
         if (mindmapState.currentMode === 'connect') {
             if (!ui.connectFrom) {
                 ui.connectFrom = nodeId;
-                e.target.style.borderColor = '#ff6b6b';
+                e.target.style.borderColor = themePalette.danger;
                 updateStatus('연결할 대상 노드를 선택하세요');
             } else if (ui.connectFrom !== nodeId) {
                 createConnection(ui.connectFrom, nodeId);
@@ -1486,15 +1606,11 @@
             parentId: parentId,
             element: nodeElement,
             isRoot: false,
-            style: {
-                backgroundColor: '#505050',
-                color: '#ffffff',
-                borderColor: '#666666',
-                fontSize: 14
-            }
+            style: { ...getDefaultStyle(false) }
         };
 
         mindmapState.nodes.set(nodeId, node);
+        syncNodeElementStyle(node);
 
         applyNodePosition(node);
 
@@ -1609,7 +1725,7 @@
     }
 
     function renderConnections() {
-        ui.ctx.strokeStyle = '#666';
+        ui.ctx.strokeStyle = themePalette.edgeColor;
         ui.ctx.lineWidth = 2;
 
         mindmapState.connections.forEach(connection => {
@@ -1634,7 +1750,7 @@
         if (!ui.minimapCtx) return;
 
         ui.minimapCtx.clearRect(0, 0, 200, 120);
-        ui.minimapCtx.fillStyle = '#2f3349';
+        ui.minimapCtx.fillStyle = themePalette.minimapBackground;
         ui.minimapCtx.fillRect(0, 0, 200, 120);
 
         // 노드들을 미니맵에 그리기
@@ -1645,7 +1761,7 @@
             const x = node.x * scaleX;
             const y = node.y * scaleY;
 
-            ui.minimapCtx.fillStyle = node.isRoot ? '#0e7db8' : '#666';
+            ui.minimapCtx.fillStyle = node.isRoot ? themePalette.minimapRoot : themePalette.minimapNode;
             ui.minimapCtx.fillRect(x - 2, y - 1, 4, 2);
         });
     }
@@ -1682,10 +1798,11 @@
         if (selectedNodes.length === 0) {
             // 선택된 노드가 없을 때
             document.getElementById('prop-text').value = '';
-            document.getElementById('prop-bgcolor').value = '#505050';
-            document.getElementById('prop-color').value = '#ffffff';
-            document.getElementById('prop-fontsize').value = '14';
-            document.getElementById('prop-bordercolor').value = '#666666';
+            const defaults = getDefaultStyle(false);
+            document.getElementById('prop-bgcolor').value = defaults.backgroundColor;
+            document.getElementById('prop-color').value = defaults.color;
+            document.getElementById('prop-fontsize').value = `${defaults.fontSize}`;
+            document.getElementById('prop-bordercolor').value = defaults.borderColor;
             document.getElementById('prop-x').value = '0';
             document.getElementById('prop-y').value = '0';
 
@@ -1830,10 +1947,7 @@
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.backgroundColor = color;
-                if (node.element) {
-                    node.element.style.backgroundColor = color;
-                }
+                applyStyleToNode(node, { backgroundColor: color });
             }
         });
         if (event.type === 'change') {
@@ -1848,10 +1962,7 @@
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.color = color;
-                if (node.element) {
-                    node.element.style.color = color;
-                }
+                applyStyleToNode(node, { color });
             }
         });
         if (event.type === 'change') {
@@ -1866,10 +1977,7 @@
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.fontSize = fontSize;
-                if (node.element) {
-                    node.element.style.fontSize = fontSize + 'px';
-                }
+                applyStyleToNode(node, { fontSize });
             }
         });
         if (event.type === 'change') {
@@ -1884,10 +1992,7 @@
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style.borderColor = color;
-                if (node.element) {
-                    node.element.style.borderColor = color;
-                }
+                applyStyleToNode(node, { borderColor: color });
             }
         });
         if (event.type === 'change') {
@@ -2140,10 +2245,10 @@
 
         // 연결 대기 중인 노드 스타일 복원
         document.querySelectorAll('.mind-node').forEach(node => {
-            if (node.style.borderColor === 'rgb(255, 107, 107)') {
+            if (normalizeColor(node.style.borderColor) === normalizeColor(themePalette.danger)) {
                 const nodeData = mindmapState.nodes.get(node.dataset.id);
                 if (nodeData) {
-                    node.style.borderColor = nodeData.style.borderColor;
+                    syncNodeElementStyle(nodeData);
                 }
             }
         });
@@ -2191,17 +2296,9 @@
 
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
-                node.style = {...clipNode.style};
+                node.style = { ...clipNode.style };
                 node.isRoot = false; // 붙여넣은 노드는 루트가 될 수 없음
-
-                // 스타일 적용
-                if (node.element) {
-                    node.element.style.backgroundColor = node.style.backgroundColor;
-                    node.element.style.color = node.style.color;
-                    node.element.style.borderColor = node.style.borderColor;
-                    node.element.style.fontSize = node.style.fontSize + 'px';
-                }
-
+                applyStyleToNode(node, {});
                 selectNode(nodeId);
             }
         });
@@ -2279,28 +2376,27 @@
     function getDefaultStyle(isRoot) {
         if (isRoot) {
             return {
-                backgroundColor: '#0e7db8',
-                color: '#ffffff',
-                borderColor: '#1890d9',
+                backgroundColor: normalizeColor(themePalette.nodeRootBg) || '#f5f5f5',
+                color: normalizeColor(themePalette.nodeRootText) || '#080808',
+                borderColor: normalizeColor(themePalette.nodeRootBorder) || '#d0d0d0',
                 fontSize: 14
             };
         }
         return {
-            backgroundColor: '#505050',
-            color: '#ffffff',
-            borderColor: '#666666',
+            backgroundColor: normalizeColor(themePalette.nodeBaseBg) || '#1f1f1f',
+            color: normalizeColor(themePalette.nodeBaseText) || '#f5f5f5',
+            borderColor: normalizeColor(themePalette.nodeBaseBorder) || '#3a3a3a',
             fontSize: 14
         };
     }
 
     function applyStyleToNode(node, style) {
         node.style = { ...node.style, ...style };
-        if (node.element) {
-            node.element.style.backgroundColor = node.style.backgroundColor;
-            node.element.style.color = node.style.color;
-            node.element.style.borderColor = node.style.borderColor;
-            node.element.style.fontSize = `${node.style.fontSize}px`;
-        }
+        node.style.backgroundColor = normalizeColor(node.style.backgroundColor) || node.style.backgroundColor;
+        node.style.color = normalizeColor(node.style.color) || node.style.color;
+        node.style.borderColor = normalizeColor(node.style.borderColor) || node.style.borderColor;
+        node.style.fontSize = typeof node.style.fontSize === 'number' ? node.style.fontSize : parseInt(node.style.fontSize, 10) || 14;
+        syncNodeElementStyle(node);
     }
 
     function resetSelectedNodeStyles() {
@@ -2330,6 +2426,14 @@
         } catch (error) {
             log('warn', '테마 설정을 저장하지 못했습니다.');
         }
+        const previousPalette = refreshThemePalette();
+        if (canvas && canvas.dataset.grid !== 'off') {
+            applyGridBackground();
+        }
+        updateNodesForThemeChange(previousPalette);
+        render();
+        updateMinimap();
+        updateProperties();
         markChanged('테마 전환');
         log('info', `테마가 ${isLight ? '라이트' : '다크'} 모드로 변경되었습니다.`);
     }
@@ -2505,13 +2609,15 @@
     }
 
     function toggleGrid() {
-        if (canvas.style.backgroundImage.includes('radial-gradient')) {
-            canvas.style.backgroundImage = 'none';
-            log('info', '격자가 숨겨졌습니다.');
-        } else {
-            canvas.style.backgroundImage = 'radial-gradient(circle, #4a4a4a 1px, transparent 1px)';
-            canvas.style.backgroundSize = '20px 20px';
+        if (!canvas) return;
+        const isOff = canvas.dataset.grid === 'off' || canvas.style.backgroundImage === 'none' || !canvas.style.backgroundImage;
+        if (isOff) {
+            applyGridBackground();
             log('info', '격자가 표시되었습니다.');
+        } else {
+            canvas.style.backgroundImage = 'none';
+            canvas.dataset.grid = 'off';
+            log('info', '격자가 숨겨졌습니다.');
         }
     }
 
