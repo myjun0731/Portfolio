@@ -891,6 +891,13 @@ body {
     backdrop-filter: blur(12px);
 }
 
+.modal-overlay[hidden],
+.modal-overlay[aria-hidden="true"] {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .modal-dialog {
     background: var(--surface-1);
     border-radius: var(--radius-lg);

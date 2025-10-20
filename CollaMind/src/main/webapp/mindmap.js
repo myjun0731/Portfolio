@@ -337,6 +337,11 @@
         ui.minimapCanvas = minimapCanvas;
         ui.minimapCtx = minimapCanvas.getContext('2d');
 
+        if (modalOverlay) {
+            modalOverlay.hidden = true;
+            modalOverlay.setAttribute('aria-hidden', 'true');
+        }
+
         loadThemePreference();
 
         // 캔버스 크기 조정
@@ -1735,12 +1740,14 @@
         modalTitle.textContent = title;
         modalBody.innerHTML = bodyHtml;
         modalOverlay.hidden = false;
+        modalOverlay.setAttribute('aria-hidden', 'false');
         modalOverlay.focus?.();
     }
 
     function closeModal() {
         if (!modalOverlay || !modalBody) return;
         modalOverlay.hidden = true;
+        modalOverlay.setAttribute('aria-hidden', 'true');
         modalBody.innerHTML = '';
     }
 
