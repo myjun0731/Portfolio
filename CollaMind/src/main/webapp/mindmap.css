@@ -537,6 +537,42 @@ body {
     background: var(--surface-0);
 }
 
+.editor-empty-state {
+    flex: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    padding: 48px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    background: linear-gradient(135deg, rgba(11, 16, 30, 0.6), rgba(16, 22, 40, 0.6));
+    backdrop-filter: blur(12px);
+}
+
+.editor-empty-state.is-visible {
+    display: flex;
+}
+
+.editor-empty-state .empty-icon {
+    font-size: 40px;
+    line-height: 1;
+}
+
+.editor-empty-state .empty-text h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.editor-empty-state .empty-text p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
 .editor-tabs {
     display: flex;
     align-items: center;
@@ -595,6 +631,10 @@ body {
     flex: 1;
     overflow: hidden;
     background: linear-gradient(135deg, rgba(11, 16, 30, 0.95), rgba(16, 22, 40, 0.95));
+}
+
+.canvas-container.is-hidden {
+    display: none;
 }
 
 #mindmap-canvas {

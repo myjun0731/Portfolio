@@ -246,17 +246,25 @@
 		</div>
 
 		<!-- 중앙 에디터 영역 -->
-		<div class="editor-area">
-			<div class="editor-tabs">
-				<div class="editor-tab active modified" data-file="새 마인드맵.mindmap">
-					🗺️ 새 마인드맵.mindmap <span class="close-btn" data-action="closetab">×</span>
-				</div>
-			</div>
+                <div class="editor-area">
+                        <div class="editor-tabs">
+                                <div class="editor-tab active modified" data-file="새 마인드맵.mindmap">
+                                        🗺️ 새 마인드맵.mindmap <span class="close-btn" data-action="closetab">×</span>
+                                </div>
+                        </div>
 
-			<div class="canvas-container">
-				<canvas id="mindmap-canvas"></canvas>
+                        <div class="editor-empty-state" id="editor-empty-state" aria-hidden="true">
+                                <div class="empty-icon" aria-hidden="true">🗂️</div>
+                                <div class="empty-text">
+                                        <h2>열린 마인드맵이 없습니다</h2>
+                                        <p>왼쪽 프로젝트에서 파일을 열거나 상단에서 새 마인드맵을 만들어주세요.</p>
+                                </div>
+                        </div>
 
-				<!-- 초기 샘플 노드들 -->
+                        <div class="canvas-container">
+                                <canvas id="mindmap-canvas"></canvas>
+
+                                <!-- 초기 샘플 노드들 -->
 				<div class="mind-node root" id="node-1"
 					style="left: 400px; top: 250px;" data-id="1">중심 아이디어</div>
 				<div class="mind-node" id="node-2" style="left: 200px; top: 150px;"

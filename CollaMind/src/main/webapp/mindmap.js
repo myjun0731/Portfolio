@@ -25,6 +25,8 @@
 
     let isRestoringHistory = false;
 
+    const DEFAULT_FILE_NAME = '새 마인드맵.mindmap';
+
     const projectExplorerState = {
         treeData: [
             {
@@ -43,10 +45,10 @@
                         children: [
                             {
                                 id: 'file-new-map',
-                                name: '새 마인드맵.mindmap',
+                                name: DEFAULT_FILE_NAME,
                                 type: 'file',
                                 icon: '🗺️',
-                                fileName: '새 마인드맵.mindmap'
+                                fileName: DEFAULT_FILE_NAME
                             },
                             {
                                 id: 'file-project-plan',
@@ -107,6 +109,7 @@
     const modalBody = document.getElementById('modal-body');
     const toastStack = document.getElementById('toast-stack');
     const autosaveIndicator = document.getElementById('autosave-indicator');
+    const editorEmptyState = document.getElementById('editor-empty-state');
 
     const GRID_BASE_SIZE = 20;
     const THEME_STORAGE_KEY = 'collamind-theme';
@@ -363,6 +366,7 @@
 
         setDirty(false);
         captureSnapshot('초기 상태');
+        updateEditorWorkspaceVisibility();
 
         log('info', '마인드맵 에디터가 완전히 초기화되었습니다.');
     }
@@ -1938,6 +1942,8 @@
             return;
         }
 
+        ensureTabForFile(DEFAULT_FILE_NAME);
+
         const container = document.querySelector('.canvas-container');
         const width = container ? container.clientWidth : 800;
         const height = container ? container.clientHeight : 600;
@@ -2017,6 +2023,10 @@
 
     function openDocument() {
         // 실제 구현에서는 파일 선택 다이얼로그
+        if (!hasOpenTabs()) {
+            ensureTabForFile(DEFAULT_FILE_NAME);
+        }
+
         const data = localStorage.getItem('mindmap-autosave');
         if (data) {
             importFromJSON(data);
@@ -2432,6 +2442,26 @@
         }
     }
 
+    function hasOpenTabs() {
+        const tabsContainer = document.querySelector('.editor-tabs');
+        return !!(tabsContainer && tabsContainer.querySelector('.editor-tab'));
+    }
+
+    function updateEditorWorkspaceVisibility() {
+        const container = canvas?.parentElement;
+        const hasTabs = hasOpenTabs();
+
+        if (container) {
+            container.classList.toggle('is-hidden', !hasTabs);
+            container.setAttribute('aria-hidden', (!hasTabs).toString());
+        }
+
+        if (editorEmptyState) {
+            editorEmptyState.classList.toggle('is-visible', !hasTabs);
+            editorEmptyState.setAttribute('aria-hidden', hasTabs ? 'true' : 'false');
+        }
+    }
+
     function log(level, message) {
         const logEntry = document.createElement('div');
         logEntry.className = `log-${level}`;
@@ -2513,6 +2543,28 @@
         log('info', '인쇄 대화상자가 열렸습니다.');
     }
 
+    function ensureTabForFile(filename, options = {}) {
+        const { activate = true } = options;
+        const tabsContainer = document.querySelector('.editor-tabs');
+        if (!tabsContainer) return null;
+
+        let tab = tabsContainer.querySelector(`.editor-tab[data-file="${filename}"]`);
+        if (!tab) {
+            tab = document.createElement('div');
+            tab.classList.add('editor-tab');
+            tab.dataset.file = filename;
+            tab.innerHTML = `🗺️ ${filename} <span class="close-btn" data-action="closetab">×</span>`;
+            tabsContainer.appendChild(tab);
+        }
+
+        if (activate) {
+            activateTab(filename);
+        }
+
+        updateEditorWorkspaceVisibility();
+        return tab;
+    }
+
     function activateTab(filename) {
         const tabsContainer = document.querySelector('.editor-tabs');
         if (!tabsContainer) return;
@@ -2536,19 +2588,7 @@
     function openFile(filename) {
         if (!filename) return;
 
-        const tabsContainer = document.querySelector('.editor-tabs');
-        if (!tabsContainer) return;
-
-        let tab = tabsContainer.querySelector(`.editor-tab[data-file="${filename}"]`);
-        if (!tab) {
-            tab = document.createElement('div');
-            tab.classList.add('editor-tab');
-            tab.dataset.file = filename;
-            tab.innerHTML = `🗺️ ${filename} <span class="close-btn" data-action="closetab">×</span>`;
-            tabsContainer.appendChild(tab);
-        }
-
-        activateTab(filename);
+        ensureTabForFile(filename);
         log('info', `파일 "${filename}"이 열렸습니다.`);
     }
 
@@ -2565,26 +2605,60 @@
         tab.remove();
         log('info', '탭이 닫혔습니다.');
 
-        if (isActive && tabsContainer) {
+        if (tabsContainer) {
             const remaining = tabsContainer.querySelectorAll('.editor-tab');
             if (remaining.length > 0) {
-                const fallback = remaining[remaining.length - 1];
-                fallback.classList.add('active');
-                if (fallback.dataset.file) {
-                    highlightProjectFile(fallback.dataset.file);
-                    updateStatus(`파일 열림: ${fallback.dataset.file}`);
+                if (isActive) {
+                    const fallback = remaining[remaining.length - 1];
+                    if (fallback.dataset.file) {
+                        activateTab(fallback.dataset.file);
+                    } else {
+                        fallback.classList.add('active');
+                    }
                 }
             } else {
                 projectExplorerState.selectedId = null;
                 renderProjectTree();
-                updateStatus('파일 닫힘');
+                setWorkspaceEmpty();
             }
-        } else if (closingFile) {
+        }
+
+        if (!isActive && closingFile) {
             const activeTab = document.querySelector('.editor-tab.active');
             if (activeTab && activeTab.dataset.file) {
                 highlightProjectFile(activeTab.dataset.file);
             }
         }
+
+        updateEditorWorkspaceVisibility();
+    }
+
+    function setWorkspaceEmpty() {
+        clearSelection();
+        history.undoStack.length = 0;
+        history.redoStack.length = 0;
+
+        const theme = body?.classList.contains('theme-light') ? 'light' : 'dark';
+
+        try {
+            isRestoringHistory = true;
+            applyStateData({
+                nodes: [],
+                connections: [],
+                zoom: 1,
+                panX: 0,
+                panY: 0,
+                nodeIdCounter: 1,
+                connectionIdCounter: 1,
+                theme
+            });
+        } finally {
+            isRestoringHistory = false;
+        }
+
+        setDirty(false);
+        updateStatus('파일 닫힘');
+        updateEditorWorkspaceVisibility();
     }
 
     function collapseProjectTree() {
