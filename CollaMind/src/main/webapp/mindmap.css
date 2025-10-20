@@ -8,20 +8,27 @@
 
 body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #2f3349;
-    color: #cccccc;
+    background: radial-gradient(circle at top left, #39435e, #23273a 55%, #1a1d2b 100%);
+    color: #e0e6f3;
     overflow: hidden;
+    transition: background 0.4s ease, color 0.3s ease;
+}
+
+body.theme-light {
+    background: radial-gradient(circle at top left, #f4f7ff, #dfe6ff 55%, #c3ceff 100%);
+    color: #1f2336;
 }
 
 /* 메뉴바 스타일 */
 .menu-bar {
-    background-color: #3c3c3c;
+    background-color: rgba(28, 31, 48, 0.85);
     height: 24px;
     border-bottom: 1px solid #555;
     display: flex;
     align-items: center;
     font-size: 11px;
     position: relative;
+    backdrop-filter: blur(6px);
 }
 
 .menu-item {
@@ -31,15 +38,16 @@ body {
     position: relative;
 }
 
-.menu-item:hover {
-    background-color: #505050;
+.menu-item:hover,
+.menu-item:focus-within {
+    background-color: rgba(14, 125, 184, 0.25);
 }
 
 .dropdown-menu {
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #4a4a4a;
+    background-color: #33384f;
     border: 1px solid #666;
     border-radius: 3px;
     min-width: 180px;
@@ -55,10 +63,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: background-color 0.2s ease;
 }
 
-.dropdown-item:hover {
-    background-color: #094771;
+.dropdown-item:hover,
+.dropdown-item:focus-visible {
+    background-color: #0e7db8;
 }
 
 .dropdown-separator {
@@ -69,7 +79,7 @@ body {
 
 /* 툴바 스타일 */
 .toolbar {
-    background-color: #414141;
+    background-color: rgba(32, 36, 54, 0.9);
     height: 32px;
     border-bottom: 1px solid #555;
     display: flex;
@@ -81,7 +91,7 @@ body {
 .toolbar-button {
     width: 24px;
     height: 24px;
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid transparent;
     cursor: pointer;
     border-radius: 2px;
@@ -93,9 +103,10 @@ body {
     position: relative;
 }
 
-.toolbar-button:hover {
-    background-color: #505050;
-    border-color: #666;
+.toolbar-button:hover,
+.toolbar-button:focus-visible {
+    background-color: rgba(14, 125, 184, 0.35);
+    border-color: #0e7db8;
 }
 
 .toolbar-button.active {
@@ -133,12 +144,13 @@ body {
 .main-container {
     display: flex;
     height: calc(100vh - 80px);
+    background: rgba(17, 20, 31, 0.65);
 }
 
 /* 왼쪽 패널 */
 .left-panel {
     width: 280px;
-    background-color: #383c4a;
+    background-color: rgba(40, 45, 68, 0.85);
     border-right: 1px solid #555;
     display: flex;
     flex-direction: column;
@@ -146,10 +158,18 @@ body {
     max-width: 400px;
     resize: horizontal;
     overflow: hidden;
+    transition: width 0.25s ease, opacity 0.25s ease;
+}
+
+.left-panel.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .panel-header {
-    background-color: #404040;
+    background-color: rgba(33, 37, 56, 0.95);
     height: 22px;
     border-bottom: 1px solid #555;
     display: flex;
@@ -176,10 +196,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
 }
 
 .panel-btn:hover {
-    background-color: #555;
+    background-color: rgba(14, 125, 184, 0.35);
 }
 
 .panel-content {
@@ -248,11 +270,12 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #2f3349;
+    background-color: rgba(31, 35, 53, 0.85);
+    backdrop-filter: blur(2px);
 }
 
 .editor-tabs {
-    background-color: #414141;
+    background-color: rgba(40, 44, 66, 0.9);
     height: 28px;
     border-bottom: 1px solid #555;
     display: flex;
@@ -261,8 +284,8 @@ body {
 }
 
 .editor-tab {
-    background-color: #515151;
-    color: #cccccc;
+    background-color: rgba(81, 81, 97, 0.6);
+    color: #f0f4ff;
     padding: 4px 16px;
     font-size: 11px;
     cursor: pointer;
@@ -276,8 +299,8 @@ body {
 }
 
 .editor-tab.active {
-    background-color: #2f3349;
-    color: white;
+    background-color: rgba(14, 125, 184, 0.85);
+    color: #ffffff;
 }
 
 .editor-tab.modified::after {
@@ -313,10 +336,15 @@ body {
     left: 0;
 }
 
+body.theme-light #mindmap-canvas {
+    background-color: #f5f6ff;
+    background-image: radial-gradient(circle, rgba(79, 117, 255, 0.35) 1px, transparent 1px);
+}
+
 /* 오른쪽 패널 */
 .right-panel {
     width: 300px;
-    background-color: #383c4a;
+    background-color: rgba(40, 45, 68, 0.85);
     border-left: 1px solid #555;
     display: flex;
     flex-direction: column;
@@ -324,6 +352,14 @@ body {
     max-width: 500px;
     resize: horizontal;
     overflow: hidden;
+    transition: width 0.25s ease, opacity 0.25s ease;
+}
+
+.right-panel.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .properties-section {
@@ -345,9 +381,9 @@ body {
 }
 
 .property-input {
-    background-color: #404040;
+    background-color: rgba(24, 27, 43, 0.9);
     border: 1px solid #555;
-    color: #cccccc;
+    color: inherit;
     padding: 4px 6px;
     font-size: 11px;
     width: 120px;
@@ -362,7 +398,7 @@ body {
 /* 하단 패널 */
 .bottom-panel {
     height: 120px;
-    background-color: #383c4a;
+    background-color: rgba(35, 39, 58, 0.85);
     border-top: 1px solid #555;
     display: flex;
     flex-direction: column;
@@ -475,7 +511,8 @@ body {
     align-items: center;
 }
 
-.context-menu-item:hover {
+.context-menu-item:hover,
+.context-menu-item:focus-visible {
     background-color: #094771;
 }
 
@@ -497,7 +534,7 @@ body {
 /* 상태바 */
 .status-bar {
     height: 24px;
-    background-color: #414141;
+    background-color: rgba(32, 36, 54, 0.95);
     border-top: 1px solid #555;
     display: flex;
     align-items: center;
@@ -516,8 +553,9 @@ body {
     cursor: pointer;
 }
 
-.status-item:hover {
-    color: #fff;
+.status-item:hover,
+.status-item:focus-visible {
+    color: #ffffff;
 }
 
 /* 스크롤바 스타일 */
@@ -573,6 +611,11 @@ body {
     height: 100%;
 }
 
+body.theme-light .minimap {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-color: #c3ceff;
+}
+
 /* 줌 컨트롤 */
 .zoom-controls {
     position: absolute;
@@ -581,6 +624,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    backdrop-filter: blur(2px);
 }
 
 .zoom-btn {
@@ -613,9 +657,225 @@ body {
 }
 
 .selection-box {
-position: absolute;
-border: 1px dashed #0e7db8;
-background-color: rgba(14, 125, 184, 0.1);
-pointer-events: none;
-z-index: 15;
+    position: absolute;
+    border: 1px dashed #0e7db8;
+    background-color: rgba(14, 125, 184, 0.15);
+    pointer-events: none;
+    z-index: 15;
+    box-shadow: 0 0 12px rgba(14, 125, 184, 0.3);
+}
+
+/* 모달 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(10, 12, 20, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-dialog {
+    background: rgba(28, 32, 50, 0.95);
+    border-radius: 12px;
+    width: min(520px, 90vw);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(14, 125, 184, 0.35);
+    color: inherit;
+    overflow: hidden;
+    transform: translateY(10px);
+    animation: modal-in 0.25s ease forwards;
+}
+
+body.theme-light .modal-dialog {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(14, 125, 184, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: rgba(14, 125, 184, 0.25);
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 18px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.modal-body ul {
+    margin: 6px 0 12px 18px;
+}
+
+.modal-body li {
+    margin-bottom: 4px;
+}
+
+.shortcut-grid ul {
+    margin: 6px 0 14px 18px;
+    padding-left: 0;
+    list-style: disc;
+}
+
+.shortcut-grid li {
+    margin-bottom: 4px;
+}
+
+.shortcut-grid strong {
+    color: #8ecbff;
+}
+
+body.theme-light .shortcut-grid strong {
+    color: #3456d1;
+}
+
+.modal-footer {
+    padding: 12px 20px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.primary-btn {
+    background-color: #0e7db8;
+    border: none;
+    color: #ffffff;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.primary-btn:hover {
+    background-color: #0b699b;
+}
+
+body.theme-light .primary-btn {
+    background-color: #094771;
+}
+
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+body.theme-light .menu-bar,
+body.theme-light .toolbar,
+body.theme-light .panel-header,
+body.theme-light .bottom-panel,
+body.theme-light .status-bar,
+body.theme-light .left-panel,
+body.theme-light .right-panel,
+body.theme-light .editor-area,
+body.theme-light .editor-tabs {
+    color: #1f2336;
+}
+
+body.theme-light .menu-bar,
+body.theme-light .toolbar {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+body.theme-light .main-container {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+body.theme-light .dropdown-menu,
+body.theme-light .toolbar-button,
+body.theme-light .panel-btn:hover,
+body.theme-light .panel-header,
+body.theme-light .bottom-panel,
+body.theme-light .status-bar,
+body.theme-light .zoom-level {
+    background-color: rgba(255, 255, 255, 0.92);
+    color: #1f2336;
+}
+
+body.theme-light .panel-btn:hover {
+    background-color: rgba(79, 117, 255, 0.2);
+}
+
+body.theme-light .left-panel,
+body.theme-light .right-panel,
+body.theme-light .editor-area,
+body.theme-light .editor-tabs {
+    background-color: rgba(255, 255, 255, 0.92);
+}
+
+body.theme-light .dropdown-item:hover,
+body.theme-light .dropdown-item:focus-visible {
+    background-color: rgba(79, 117, 255, 0.2);
+}
+
+body.theme-light .panel-btn,
+body.theme-light .toolbar-button {
+    color: #1f2336;
+}
+
+body.theme-light .toolbar-button.active {
+    background-color: #4f75ff;
+    border-color: #3456d1;
+    color: #ffffff;
+}
+
+body.theme-light .mind-node {
+    background-color: #ffffff;
+    color: #1f2336;
+    border-color: #c3ceff;
+}
+
+body.theme-light .mind-node.root {
+    background-color: #4f75ff;
+    border-color: #3456d1;
+    color: #ffffff;
+}
+
+body.theme-light .context-menu {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #1f2336;
+    border-color: #c3ceff;
+}
+
+body.theme-light .context-menu-item:hover,
+body.theme-light .context-menu-item:focus-visible {
+    background-color: rgba(79, 117, 255, 0.2);
+}
+
+body.theme-light .zoom-btn {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #1f2336;
+}
+
+body.theme-light .zoom-btn:hover {
+    background-color: rgba(79, 117, 255, 0.15);
+}
+
+body.theme-light .modal-header {
+    background: rgba(79, 117, 255, 0.2);
 }

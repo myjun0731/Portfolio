@@ -17,6 +17,14 @@
         connectionIdCounter: 1
     };
 
+    const history = {
+        undoStack: [],
+        redoStack: [],
+        limit: 50
+    };
+
+    let isRestoringHistory = false;
+
     const projectExplorerState = {
         treeData: [
             {
@@ -83,7 +91,8 @@
         dragStartPos: null, // 드래그 시작 위치 추가
         dragOffset: { x: 0, y: 0 },
         connectFrom: null,
-        lastMousePos: { x: 0, y: 0 }
+        lastMousePos: { x: 0, y: 0 },
+        didMoveNodes: false
     };
 
     // DOM 요소 참조
@@ -91,7 +100,17 @@
     const minimapCanvas = document.getElementById('minimap-canvas');
     const consoleOutput = document.getElementById('console');
     const contextMenu = document.getElementById('context-menu');
+    const body = document.body;
+    const modalOverlay = document.getElementById('app-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+
     const GRID_BASE_SIZE = 20;
+    const THEME_STORAGE_KEY = 'collamind-theme';
+
+    let selectionBox = null;
+    let selectionStart = null;
+    let isSelecting = false;
 
     // 좌표 변환 유틸리티
     function worldToScreen(x, y) {
@@ -131,12 +150,191 @@
         canvas.style.backgroundPosition = `${offsetX}px ${offsetY}px`;
     }
 
+    function serializeState() {
+        const nodes = Array.from(mindmapState.nodes.values()).map(node => ({
+            id: node.id,
+            text: node.text,
+            x: node.x,
+            y: node.y,
+            parentId: node.parentId,
+            isRoot: node.isRoot,
+            style: { ...node.style }
+        }));
+
+        const connections = Array.from(mindmapState.connections.values()).map(conn => ({
+            id: conn.id,
+            from: conn.from,
+            to: conn.to
+        }));
+
+        return JSON.stringify({
+            nodes,
+            connections,
+            zoom: mindmapState.zoom,
+            panX: mindmapState.panX,
+            panY: mindmapState.panY,
+            nodeIdCounter: mindmapState.nodeIdCounter,
+            connectionIdCounter: mindmapState.connectionIdCounter,
+            theme: body?.classList.contains('theme-light') ? 'light' : 'dark'
+        });
+    }
+
+    function applyStateData(stateData) {
+        const container = document.querySelector('.canvas-container');
+        if (!container) return;
+
+        document.querySelectorAll('.mind-node').forEach(node => node.remove());
+
+        mindmapState.nodes.clear();
+        mindmapState.connections.clear();
+        mindmapState.selectedNodes.clear();
+
+        mindmapState.zoom = typeof stateData.zoom === 'number' ? stateData.zoom : 1.0;
+        mindmapState.panX = typeof stateData.panX === 'number' ? stateData.panX : 0;
+        mindmapState.panY = typeof stateData.panY === 'number' ? stateData.panY : 0;
+
+        if (body) {
+            if (stateData.theme === 'light') {
+                body.classList.add('theme-light');
+            } else {
+                body.classList.remove('theme-light');
+            }
+        }
+
+        const anchor = container.querySelector('.zoom-controls');
+
+        (stateData.nodes || []).forEach(nodeData => {
+            const nodeElement = document.createElement('div');
+            nodeElement.className = `mind-node ${nodeData.isRoot ? 'root' : ''}`;
+            nodeElement.id = `node-${nodeData.id}`;
+            nodeElement.dataset.id = nodeData.id;
+
+            if (nodeData.parentId) {
+                nodeElement.dataset.parent = nodeData.parentId;
+            } else {
+                delete nodeElement.dataset.parent;
+            }
+
+            nodeElement.textContent = nodeData.text;
+
+            const style = nodeData.style ? { ...nodeData.style } : getDefaultStyle(nodeData.isRoot);
+            if (typeof style.fontSize !== 'number') {
+                style.fontSize = parseInt(style.fontSize) || 14;
+            }
+            nodeElement.style.backgroundColor = style.backgroundColor;
+            nodeElement.style.color = style.color;
+            nodeElement.style.borderColor = style.borderColor;
+            nodeElement.style.fontSize = `${style.fontSize}px`;
+
+            if (anchor) {
+                container.insertBefore(nodeElement, anchor);
+            } else {
+                container.appendChild(nodeElement);
+            }
+
+            nodeElement.addEventListener('mousedown', onNodeMouseDown);
+            nodeElement.addEventListener('dblclick', onNodeDoubleClick);
+
+            mindmapState.nodes.set(nodeData.id, {
+                id: nodeData.id,
+                text: nodeData.text,
+                x: nodeData.x,
+                y: nodeData.y,
+                parentId: nodeData.parentId || null,
+                element: nodeElement,
+                isRoot: !!nodeData.isRoot,
+                style
+            });
+        });
+
+        const maxNodeId = (stateData.nodes || []).reduce((max, node) => {
+            const numeric = parseInt(node.id, 10);
+            return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
+        }, 0);
+
+        const nextNodeCounter = Number.isFinite(stateData.nodeIdCounter) ? stateData.nodeIdCounter : maxNodeId + 1;
+        mindmapState.nodeIdCounter = Math.max(nextNodeCounter, maxNodeId + 1, 2);
+
+        (stateData.connections || []).forEach(conn => {
+            mindmapState.connections.set(conn.id, {
+                id: conn.id,
+                from: conn.from,
+                to: conn.to
+            });
+        });
+
+        const maxConnId = (stateData.connections || []).reduce((max, conn) => {
+            const numeric = parseInt((conn.id || '').replace(/\D+/g, ''), 10);
+            return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
+        }, 0);
+
+        const nextConnCounter = Number.isFinite(stateData.connectionIdCounter) ? stateData.connectionIdCounter : maxConnId + 1;
+        mindmapState.connectionIdCounter = Math.max(nextConnCounter, maxConnId + 1, 1);
+
+        mindmapState.currentMode = 'select';
+        setMode('select', { log: false });
+
+        applyAllNodePositions();
+        render();
+        updateMinimap();
+        updateUI();
+    }
+
+    function captureSnapshot(description = '') {
+        if (isRestoringHistory) return;
+
+        const serialized = serializeState();
+        const last = history.undoStack[history.undoStack.length - 1];
+
+        if (last && last.data === serialized) {
+            last.description = description || last.description;
+            last.dirty = mindmapState.isDirty;
+            return;
+        }
+
+        history.undoStack.push({
+            data: serialized,
+            description,
+            dirty: mindmapState.isDirty,
+            timestamp: Date.now()
+        });
+
+        if (history.undoStack.length > history.limit) {
+            history.undoStack.shift();
+        }
+
+        history.redoStack.length = 0;
+    }
+
+    function restoreSnapshot(snapshot) {
+        if (!snapshot) return;
+
+        try {
+            isRestoringHistory = true;
+            const data = JSON.parse(snapshot.data);
+            applyStateData(data);
+            setDirty(!!snapshot.dirty);
+        } catch (error) {
+            log('error', '상태 복원에 실패했습니다: ' + error.message);
+        } finally {
+            isRestoringHistory = false;
+        }
+    }
+
+    function markChanged(description) {
+        if (isRestoringHistory) return;
+        setDirty(true);
+        captureSnapshot(description);
+    }
+
     // 초기화
     function init() {
         ui.canvas = canvas;
         ui.ctx = canvas.getContext('2d');
         ui.minimapCanvas = minimapCanvas;
         ui.minimapCtx = minimapCanvas.getContext('2d');
+
+        loadThemePreference();
 
         // 캔버스 크기 조정
         resizeCanvas();
@@ -154,6 +352,9 @@
         render();
         updateMinimap();
         updateUI();
+
+        setDirty(false);
+        captureSnapshot('초기 상태');
 
         log('info', '마인드맵 에디터가 완전히 초기화되었습니다.');
     }
@@ -250,10 +451,17 @@
     // 캔버스 마우스 다운
     function onCanvasMouseDown(e) {
         const rect = canvas.getBoundingClientRect();
-        ui.lastMousePos = {
+        const pointer = {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
         };
+
+        ui.lastMousePos = { ...pointer };
+
+        if (e.button === 0 && (e.ctrlKey || e.shiftKey)) {
+            startSelection(pointer, e.ctrlKey || e.shiftKey);
+            return;
+        }
 
         if (mindmapState.currentMode === 'pan' || e.button === 1) { // 중간 마우스 버튼
             ui.isDragging = true;
@@ -285,9 +493,83 @@
     }
 
     // 캔버스 마우스 업
-    function onCanvasMouseUp(e) {
+    function onCanvasMouseUp() {
         ui.isDragging = false;
         canvas.style.cursor = mindmapState.currentMode === 'pan' ? 'grab' : 'crosshair';
+    }
+
+    function startSelection(startPoint, additiveSelection) {
+        if (!canvas.parentElement) return;
+
+        if (!additiveSelection) {
+            clearSelection();
+        }
+
+        isSelecting = true;
+        selectionStart = startPoint;
+
+        selectionBox = document.createElement('div');
+        selectionBox.className = 'selection-box';
+        selectionBox.style.left = `${startPoint.x}px`;
+        selectionBox.style.top = `${startPoint.y}px`;
+        selectionBox.style.width = '0px';
+        selectionBox.style.height = '0px';
+
+        canvas.parentElement.appendChild(selectionBox);
+
+        document.addEventListener('mousemove', onSelectionMouseMove);
+        document.addEventListener('mouseup', onSelectionMouseUp);
+    }
+
+    function onSelectionMouseMove(e) {
+        if (!isSelecting || !selectionStart) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+
+        const x = Math.min(selectionStart.x, current.x);
+        const y = Math.min(selectionStart.y, current.y);
+        const width = Math.abs(selectionStart.x - current.x);
+        const height = Math.abs(selectionStart.y - current.y);
+
+        if (selectionBox) {
+            selectionBox.style.left = `${x}px`;
+            selectionBox.style.top = `${y}px`;
+            selectionBox.style.width = `${width}px`;
+            selectionBox.style.height = `${height}px`;
+        }
+    }
+
+    function onSelectionMouseUp(e) {
+        if (!isSelecting || !selectionStart) return;
+
+        const boxRect = selectionBox?.getBoundingClientRect();
+        if (boxRect) {
+            document.querySelectorAll('.mind-node').forEach(nodeEl => {
+                const nodeRect = nodeEl.getBoundingClientRect();
+                const intersects = !(nodeRect.right < boxRect.left ||
+                                     nodeRect.left > boxRect.right ||
+                                     nodeRect.bottom < boxRect.top ||
+                                     nodeRect.top > boxRect.bottom);
+                if (intersects) {
+                    selectNode(nodeEl.dataset.id);
+                }
+            });
+        }
+
+        if (selectionBox && selectionBox.parentElement) {
+            selectionBox.parentElement.removeChild(selectionBox);
+        }
+
+        selectionBox = null;
+        selectionStart = null;
+        isSelecting = false;
+
+        document.removeEventListener('mousemove', onSelectionMouseMove);
+        document.removeEventListener('mouseup', onSelectionMouseUp);
     }
 
     // 캔버스 휠 (줌)
@@ -329,6 +611,7 @@
         // 드래그 시작
         ui.isDragging = true;
         ui.dragStartNode = nodeId;
+        ui.didMoveNodes = false;
 
         const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
         const pointerScreen = {
@@ -386,12 +669,14 @@
             const deltaX = newX - startNode.x;
             const deltaY = newY - startNode.y;
 
-            // 선택된 모든 노드를 같은 거리만큼 이동
-            moveSelectedNodes(deltaX, deltaY);
+            if (deltaX !== 0 || deltaY !== 0) {
+                // 선택된 모든 노드를 같은 거리만큼 이동
+                moveSelectedNodes(deltaX, deltaY);
+                ui.didMoveNodes = true;
 
-            render();
-            updateMinimap();
-            setDirty(true);
+                render();
+                updateMinimap();
+            }
         }
     }
 
@@ -407,6 +692,11 @@
             });
         }
 
+        if (ui.didMoveNodes) {
+            markChanged('노드 이동');
+            ui.didMoveNodes = false;
+        }
+
         ui.isDragging = false;
         ui.dragStartNode = null;
         ui.dragStartPos = null;
@@ -416,6 +706,14 @@
 
     // 키보드 이벤트
     function onKeyDown(e) {
+        if (isModalOpen()) {
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                closeModal();
+            }
+            return;
+        }
+
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
         switch(e.code) {
@@ -441,8 +739,14 @@
                 break;
             case 'Escape':
                 e.preventDefault();
-                clearConnectMode();
+                if (mindmapState.currentMode === 'connect') {
+                    clearConnectMode();
+                } else {
+                    setMode('select', { log: false });
+                }
                 clearSelection();
+                hideContextMenu();
+                closeAllMenus();
                 break;
         }
 
@@ -499,6 +803,35 @@
                     break;
             }
         }
+
+        if (e.altKey && !e.ctrlKey) {
+            switch(e.code) {
+                case 'Digit1':
+                    e.preventDefault();
+                    togglePanel('left');
+                    break;
+                case 'Digit2':
+                    e.preventDefault();
+                    togglePanel('right');
+                    break;
+                case 'KeyM':
+                    e.preventDefault();
+                    setMode('pan');
+                    break;
+                case 'KeyS':
+                    e.preventDefault();
+                    setMode('select');
+                    break;
+                case 'KeyT':
+                    e.preventDefault();
+                    toggleTheme();
+                    break;
+                case 'Digit0':
+                    e.preventDefault();
+                    resetView();
+                    break;
+            }
+        }
     }
 
     function onKeyUp(e) {
@@ -509,36 +842,53 @@
     function setupMenuEvents() {
         // 메뉴 항목 클릭
         document.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('mouseenter', function() {
-                // 다른 메뉴 닫기
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.style.display = 'none';
-                });
-                // 현재 메뉴 열기
-                const dropdown = this.querySelector('.dropdown-menu');
-                if (dropdown) {
-                    dropdown.style.display = 'block';
+            const dropdown = item.querySelector('.dropdown-menu');
+            if (!dropdown) return;
+
+            const showMenu = () => {
+                closeAllMenus();
+                dropdown.style.display = 'block';
+            };
+
+            item.addEventListener('mouseenter', showMenu);
+            item.addEventListener('focusin', showMenu);
+            item.addEventListener('click', function(e) {
+                const isVisible = dropdown.style.display === 'block';
+                if (isVisible) {
+                    dropdown.style.display = 'none';
+                } else {
+                    showMenu();
+                }
+                e.stopPropagation();
+            });
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const isVisible = dropdown.style.display === 'block';
+                    if (isVisible) {
+                        dropdown.style.display = 'none';
+                    } else {
+                        showMenu();
+                    }
                 }
             });
         });
 
-        // 메뉴바 밖을 클릭하면 메뉴 닫기
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.menu-bar')) {
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.style.display = 'none';
-                });
-            }
-        });
-
         // 드롭다운 항목 클릭
         document.querySelectorAll('.dropdown-item').forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
                 const action = this.dataset.action;
                 executeAction(action);
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.style.display = 'none';
-                });
+                closeAllMenus();
+            });
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const action = this.dataset.action;
+                    executeAction(action);
+                    closeAllMenus();
+                }
             });
         });
     }
@@ -747,6 +1097,14 @@
                 executeAction(action);
                 hideContextMenu();
             });
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const action = this.dataset.action;
+                    executeAction(action);
+                    hideContextMenu();
+                }
+            });
         });
 
         // 줌 컨트롤
@@ -762,6 +1120,18 @@
             btn.addEventListener('click', function() {
                 const action = this.dataset.action;
                 executeAction(action);
+            });
+        });
+
+        document.querySelectorAll('.status-item[data-action]').forEach(item => {
+            item.addEventListener('click', function() {
+                executeAction(this.dataset.action);
+            });
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    executeAction(this.dataset.action);
+                }
             });
         });
 
@@ -783,6 +1153,29 @@
                 }
             });
         }
+
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', function(e) {
+                const actionTarget = e.target.closest('[data-action]');
+                if (actionTarget && actionTarget.dataset.action === 'closemodal') {
+                    executeAction('closemodal');
+                    return;
+                }
+
+                if (e.target === modalOverlay) {
+                    closeModal();
+                }
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.context-menu')) {
+                hideContextMenu();
+            }
+            if (!e.target.closest('.menu-bar')) {
+                closeAllMenus();
+            }
+        });
     }
 
     // 액션 실행
@@ -825,6 +1218,17 @@
             case 'refresh': refreshProject(); break;
             case 'collapse': collapseProjectTree(); break;
             case 'clear': clearConsole(); break;
+            case 'resetproperties': resetSelectedNodeStyles(); break;
+            case 'toggleleftpanel': togglePanel('left'); break;
+            case 'togglerightpanel': togglePanel('right'); break;
+            case 'cyclemode': cycleMode(); break;
+            case 'selectmode': setMode('select'); break;
+            case 'panmode': setMode('pan'); break;
+            case 'resetview': resetView(); break;
+            case 'toggletheme': toggleTheme(); break;
+            case 'showshortcuts': showShortcutsModal(); break;
+            case 'showabout': showAboutModal(); break;
+            case 'closemodal': closeModal(); break;
             case 'closetab': /* 탭별로 처리됨 */; break;
 
             default:
@@ -859,6 +1263,8 @@
     function deleteSelectedNodes() {
         if (mindmapState.selectedNodes.size === 0) return;
 
+        let removedCount = 0;
+
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node && !node.isRoot) { // 루트 노드는 삭제 불가
@@ -876,6 +1282,7 @@
 
                 // 상태에서 제거
                 mindmapState.nodes.delete(nodeId);
+                removedCount += 1;
             }
         });
 
@@ -883,8 +1290,12 @@
         render();
         updateMinimap();
         updateUI();
-        setDirty(true);
-        log('info', `${mindmapState.selectedNodes.size}개 노드가 삭제되었습니다.`);
+        if (removedCount > 0) {
+            markChanged('노드 삭제');
+            log('info', `${removedCount}개 노드가 삭제되었습니다.`);
+        } else {
+            log('warn', '루트 노드는 삭제할 수 없습니다.');
+        }
     }
 
     function addNode() {
@@ -895,6 +1306,7 @@
 
         createNode(`새 노드 ${mindmapState.nodeIdCounter}`, x, y);
         log('info', '새 노드가 추가되었습니다.');
+        markChanged('노드 추가');
     }
 
     function addChildToSelected() {
@@ -919,8 +1331,9 @@
         const y = parent.y + 50;
 
         const childId = createNode(`하위 노드 ${mindmapState.nodeIdCounter}`, x, y, parentId);
-        createConnection(parentId, childId);
+        createConnection(parentId, childId, { trackHistory: false });
         log('info', '하위 노드가 추가되었습니다.');
+        markChanged('하위 노드 추가');
     }
 
     function addSiblingNode(siblingId) {
@@ -933,9 +1346,10 @@
 
         const newSiblingId = createNode(`형제 노드 ${mindmapState.nodeIdCounter}`, x, y, parentId);
         if (parentId) {
-            createConnection(parentId, newSiblingId);
+            createConnection(parentId, newSiblingId, { trackHistory: false });
         }
         log('info', '형제 노드가 추가되었습니다.');
+        markChanged('형제 노드 추가');
     }
 
     function createNode(text, x, y, parentId = null) {
@@ -953,7 +1367,15 @@
         nodeElement.textContent = text;
 
         // 컨테이너에 추가
-        document.querySelector('.canvas-container').appendChild(nodeElement);
+        const container = document.querySelector('.canvas-container');
+        if (container) {
+            const anchor = container.querySelector('.zoom-controls');
+            if (anchor) {
+                container.insertBefore(nodeElement, anchor);
+            } else {
+                container.appendChild(nodeElement);
+            }
+        }
 
         // 이벤트 리스너 추가
         nodeElement.addEventListener('mousedown', onNodeMouseDown);
@@ -983,7 +1405,6 @@
         render();
         updateMinimap();
         updateUI();
-        setDirty(true);
 
         return nodeId;
     }
@@ -1039,7 +1460,7 @@
             node.text = newText;
             node.element.textContent = newText;
             node.element.classList.remove('editing');
-            setDirty(true);
+            markChanged('노드 텍스트 변경');
             log('info', `노드 텍스트가 변경되었습니다: "${newText}"`);
         };
 
@@ -1056,7 +1477,7 @@
         });
     }
 
-    function createConnection(fromId, toId) {
+    function createConnection(fromId, toId, options = {}) {
         const connectionId = `conn-${fromId}-${toId}`;
         if (mindmapState.connections.has(connectionId)) return;
 
@@ -1069,7 +1490,9 @@
         render();
         updateMinimap();
         updateUI();
-        setDirty(true);
+        if (options.trackHistory !== false) {
+            markChanged('연결 추가');
+        }
         log('info', `노드 ${fromId}과 ${toId} 사이에 연결이 생성되었습니다.`);
     }
 
@@ -1206,14 +1629,88 @@
 
     function updateZoomDisplay() {
         const zoomPercent = Math.round(mindmapState.zoom * 100);
-        document.querySelector('.zoom-level').textContent = `${zoomPercent}%`;
-        document.getElementById('status-zoom').textContent = `줌: ${zoomPercent}%`;
+        const zoomIndicator = document.querySelector('.zoom-level');
+        const statusZoom = document.getElementById('status-zoom');
+        if (zoomIndicator) {
+            zoomIndicator.textContent = `${zoomPercent}%`;
+        }
+        if (statusZoom) {
+            statusZoom.textContent = `줌: ${zoomPercent}%`;
+        }
+    }
+
+    function isModalOpen() {
+        return modalOverlay && !modalOverlay.hidden;
+    }
+
+    function openModal(title, bodyHtml) {
+        if (!modalOverlay || !modalTitle || !modalBody) return;
+        modalTitle.textContent = title;
+        modalBody.innerHTML = bodyHtml;
+        modalOverlay.hidden = false;
+        modalOverlay.focus?.();
+    }
+
+    function closeModal() {
+        if (!modalOverlay || !modalBody) return;
+        modalOverlay.hidden = true;
+        modalBody.innerHTML = '';
+    }
+
+    function showShortcutsModal() {
+        const shortcuts = `
+            <div class="shortcut-grid">
+                <p><strong>기본</strong></p>
+                <ul>
+                    <li>Ctrl + N : 새 마인드맵</li>
+                    <li>Ctrl + O : 열기</li>
+                    <li>Ctrl + S : 저장</li>
+                    <li>Ctrl + P : 인쇄</li>
+                </ul>
+                <p><strong>편집</strong></p>
+                <ul>
+                    <li>Ctrl + Z / Y : 실행취소 / 다시실행</li>
+                    <li>Ctrl + C / V / X : 복사 / 붙여넣기 / 잘라내기</li>
+                    <li>Delete : 선택 노드 삭제</li>
+                </ul>
+                <p><strong>구조</strong></p>
+                <ul>
+                    <li>Insert : 새 노드 추가</li>
+                    <li>Tab : 하위 노드 추가</li>
+                    <li>Enter : 형제 노드 추가</li>
+                    <li>Ctrl / Shift + 드래그 : 다중 선택 박스</li>
+                </ul>
+                <p><strong>보기 및 도구</strong></p>
+                <ul>
+                    <li>Ctrl + +/-/0 : 확대 / 축소 / 맞춤</li>
+                    <li>Alt + 1 / 2 : 왼쪽 / 오른쪽 패널 토글</li>
+                    <li>Alt + M / S : 이동 모드 / 선택 모드</li>
+                    <li>Alt + 0 : 뷰 초기화</li>
+                    <li>Alt + T : 테마 전환</li>
+                </ul>
+            </div>
+        `;
+        openModal('단축키 안내', shortcuts);
+    }
+
+    function showAboutModal() {
+        const aboutHtml = `
+            <p><strong>CollaMind</strong>는 협업을 위한 마인드맵 IDE 시연 버전입니다.</p>
+            <ul>
+                <li>드래그 앤 드롭, 다중 선택, 연결 모드 제공</li>
+                <li>프로젝트 트리, 속성 패널, 미니맵, 콘솔 로그 지원</li>
+                <li>JSON 내보내기 및 자동 저장을 통한 안전한 작업 흐름</li>
+                <li>라이트/다크 테마 및 접근성 향상된 UI</li>
+            </ul>
+            <p>CollaMind를 통해 아이디어를 시각화하고 팀과 빠르게 공유하세요!</p>
+        `;
+        openModal('CollaMind 정보', aboutHtml);
     }
 
     // === 속성 업데이트 함수들 ===
 
-    function updateNodeText() {
-        const newText = this.value;
+    function updateNodeText(event) {
+        const newText = event.target.value;
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
@@ -1223,11 +1720,15 @@
                 }
             }
         });
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: 텍스트 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
-    function updateNodeBackgroundColor() {
-        const color = this.value;
+    function updateNodeBackgroundColor(event) {
+        const color = event.target.value;
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
@@ -1237,11 +1738,15 @@
                 }
             }
         });
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: 배경색 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
-    function updateNodeColor() {
-        const color = this.value;
+    function updateNodeColor(event) {
+        const color = event.target.value;
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
@@ -1251,11 +1756,15 @@
                 }
             }
         });
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: 글자색 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
-    function updateNodeFontSize() {
-        const fontSize = parseInt(this.value);
+    function updateNodeFontSize(event) {
+        const fontSize = parseInt(event.target.value);
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
@@ -1265,11 +1774,15 @@
                 }
             }
         });
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: 글자 크기 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
-    function updateNodeBorderColor() {
-        const color = this.value;
+    function updateNodeBorderColor(event) {
+        const color = event.target.value;
         mindmapState.selectedNodes.forEach(nodeId => {
             const node = mindmapState.nodes.get(nodeId);
             if (node) {
@@ -1279,11 +1792,15 @@
                 }
             }
         });
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: 테두리색 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
-    function updateNodeX() {
-        const newX = parseInt(this.value);
+    function updateNodeX(event) {
+        const newX = parseInt(event.target.value);
         if (mindmapState.selectedNodes.size === 1) {
             const nodeId = [...mindmapState.selectedNodes][0];
             const node = mindmapState.nodes.get(nodeId);
@@ -1294,11 +1811,15 @@
                 updateMinimap();
             }
         }
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: X 좌표 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
-    function updateNodeY() {
-        const newY = parseInt(this.value);
+    function updateNodeY(event) {
+        const newY = parseInt(event.target.value);
         if (mindmapState.selectedNodes.size === 1) {
             const nodeId = [...mindmapState.selectedNodes][0];
             const node = mindmapState.nodes.get(nodeId);
@@ -1309,7 +1830,11 @@
                 updateMinimap();
             }
         }
-        setDirty(true);
+        if (event.type === 'change') {
+            markChanged('속성: Y 좌표 변경');
+        } else {
+            setDirty(true);
+        }
     }
 
     // === 문서 관리 함수들 ===
@@ -1319,60 +1844,38 @@
             return;
         }
 
-        // 모든 노드 삭제 (루트 제외)
-        document.querySelectorAll('.mind-node:not(.root)').forEach(node => node.remove());
+        const container = document.querySelector('.canvas-container');
+        const width = container ? container.clientWidth : 800;
+        const height = container ? container.clientHeight : 600;
 
-        // 상태 초기화
-        mindmapState.nodes.clear();
-        mindmapState.connections.clear();
-        mindmapState.selectedNodes.clear();
-        mindmapState.nodeIdCounter = 2;
-
-        // 루트 노드만 다시 생성
-        createRootNode();
-
-        render();
-        updateMinimap();
-        updateUI();
-        setDirty(false);
-        log('info', '새 문서가 생성되었습니다.');
-    }
-
-    function createRootNode() {
-        const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
-        const screenX = containerRect.width / 2 - 60;
-        const screenY = containerRect.height / 2 - 20;
-        const { x, y } = screenToWorld(screenX, screenY);
-
-        const rootElement = document.createElement('div');
-        rootElement.className = 'mind-node root';
-        rootElement.id = 'node-1';
-        rootElement.dataset.id = '1';
-        rootElement.textContent = '중심 아이디어';
-
-        document.querySelector('.canvas-container').appendChild(rootElement);
-
-        rootElement.addEventListener('mousedown', onNodeMouseDown);
-        rootElement.addEventListener('dblclick', onNodeDoubleClick);
-
-        const rootNode = {
-            id: '1',
-            text: '중심 아이디어',
-            x: x,
-            y: y,
-            parentId: null,
-            element: rootElement,
-            isRoot: true,
-            style: {
-                backgroundColor: '#0e7db8',
-                color: '#ffffff',
-                borderColor: '#1890d9',
-                fontSize: 14
-            }
+        const initialState = {
+            nodes: [{
+                id: '1',
+                text: '중심 아이디어',
+                x: width / 2 - 60,
+                y: height / 2 - 20,
+                parentId: null,
+                isRoot: true,
+                style: { ...getDefaultStyle(true) }
+            }],
+            connections: [],
+            zoom: 1,
+            panX: 0,
+            panY: 0,
+            nodeIdCounter: 2,
+            connectionIdCounter: 1,
+            theme: body?.classList.contains('theme-light') ? 'light' : 'dark'
         };
 
-        mindmapState.nodes.set('1', rootNode);
-        applyNodePosition(rootNode);
+        isRestoringHistory = true;
+        applyStateData(initialState);
+        isRestoringHistory = false;
+
+        history.undoStack.length = 0;
+        history.redoStack.length = 0;
+        setDirty(false);
+        captureSnapshot('새 문서');
+        log('info', '새 문서가 생성되었습니다.');
     }
 
     function saveDocument() {
@@ -1380,7 +1883,36 @@
         const data = exportToJSON();
         localStorage.setItem('mindmap-autosave', data);
         setDirty(false);
+        const lastSnapshot = history.undoStack[history.undoStack.length - 1];
+        if (lastSnapshot) {
+            lastSnapshot.dirty = false;
+        }
         log('info', '문서가 저장되었습니다.');
+    }
+
+    function saveAsDocument() {
+        const suggestedName = '마인드맵.json';
+        const fileName = prompt('저장할 파일 이름을 입력하세요.', suggestedName);
+        if (!fileName) {
+            log('warn', '저장이 취소되었습니다.');
+            return;
+        }
+
+        const downloadName = fileName.toLowerCase().endsWith('.json') ? fileName : `${fileName}.json`;
+        const data = exportToJSON();
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = downloadName;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setDirty(false);
+        const lastSnapshot = history.undoStack[history.undoStack.length - 1];
+        if (lastSnapshot) {
+            lastSnapshot.dirty = false;
+        }
+        log('info', `문서가 "${downloadName}" 파일로 저장되었습니다.`);
     }
 
     function openDocument() {
@@ -1395,80 +1927,40 @@
     }
 
     function exportToJSON() {
-        const data = {
-            nodes: Array.from(mindmapState.nodes.values()).map(node => ({
-                id: node.id,
-                text: node.text,
-                x: node.x,
-                y: node.y,
-                parentId: node.parentId,
-                isRoot: node.isRoot,
-                style: node.style
-            })),
-            connections: Array.from(mindmapState.connections.values())
-        };
-        return JSON.stringify(data, null, 2);
+        return JSON.stringify(JSON.parse(serializeState()), null, 2);
     }
 
     function importFromJSON(jsonData) {
+        let data;
         try {
-            const data = JSON.parse(jsonData);
-
-            // 기존 노드 삭제
-            document.querySelectorAll('.mind-node').forEach(node => node.remove());
-            mindmapState.nodes.clear();
-            mindmapState.connections.clear();
-            mindmapState.selectedNodes.clear();
-
-            // 노드 복원
-            data.nodes.forEach(nodeData => {
-                const nodeElement = document.createElement('div');
-                nodeElement.className = `mind-node ${nodeData.isRoot ? 'root' : ''}`;
-                nodeElement.id = `node-${nodeData.id}`;
-                nodeElement.dataset.id = nodeData.id;
-                if (nodeData.parentId) {
-                    nodeElement.dataset.parent = nodeData.parentId;
-                }
-                nodeElement.textContent = nodeData.text;
-
-                // 스타일 적용
-                if (nodeData.style) {
-                    nodeElement.style.backgroundColor = nodeData.style.backgroundColor;
-                    nodeElement.style.color = nodeData.style.color;
-                    nodeElement.style.borderColor = nodeData.style.borderColor;
-                    nodeElement.style.fontSize = nodeData.style.fontSize + 'px';
-                }
-
-                document.querySelector('.canvas-container').appendChild(nodeElement);
-
-                nodeElement.addEventListener('mousedown', onNodeMouseDown);
-                nodeElement.addEventListener('dblclick', onNodeDoubleClick);
-
-                mindmapState.nodes.set(nodeData.id, {
-                    ...nodeData,
-                    element: nodeElement
-                });
-            });
-
-            applyAllNodePositions();
-
-            // 연결 복원
-            data.connections.forEach(connData => {
-                mindmapState.connections.set(connData.id, connData);
-            });
-
-            // 노드 ID 카운터 업데이트
-            const maxId = Math.max(...data.nodes.map(n => parseInt(n.id)));
-            mindmapState.nodeIdCounter = maxId + 1;
-
-            render();
-            updateMinimap();
-            updateUI();
-            setDirty(false);
-
+            data = JSON.parse(jsonData);
         } catch (error) {
             log('error', '문서 불러오기 실패: ' + error.message);
+            return;
         }
+
+        const state = {
+            nodes: data.nodes || [],
+            connections: data.connections || [],
+            zoom: typeof data.zoom === 'number' ? data.zoom : mindmapState.zoom,
+            panX: typeof data.panX === 'number' ? data.panX : mindmapState.panX,
+            panY: typeof data.panY === 'number' ? data.panY : mindmapState.panY,
+            nodeIdCounter: data.nodeIdCounter,
+            connectionIdCounter: data.connectionIdCounter,
+            theme: data.theme || (body?.classList.contains('theme-light') ? 'light' : 'dark')
+        };
+
+        try {
+            isRestoringHistory = true;
+            applyStateData(state);
+        } finally {
+            isRestoringHistory = false;
+        }
+
+        setDirty(false);
+        history.undoStack.length = 0;
+        history.redoStack.length = 0;
+        captureSnapshot('문서 불러오기');
     }
 
     // === 줌 및 뷰 관리 ===
@@ -1522,11 +2014,7 @@
         if (mindmapState.currentMode === 'connect') {
             clearConnectMode();
         } else {
-            mindmapState.currentMode = 'connect';
-            canvas.style.cursor = 'crosshair';
-            document.querySelector('[data-action="connect"]').classList.add('active');
-            updateStatus('연결 모드: 첫 번째 노드를 선택하세요');
-            log('info', '연결 모드가 활성화되었습니다.');
+            setMode('connect');
         }
     }
 
@@ -1534,7 +2022,8 @@
         mindmapState.currentMode = 'select';
         ui.connectFrom = null;
         canvas.style.cursor = 'crosshair';
-        document.querySelector('[data-action="connect"]').classList.remove('active');
+        const connectBtn = document.querySelector('[data-action="connect"]');
+        connectBtn?.classList.remove('active');
 
         // 연결 대기 중인 노드 스타일 복원
         document.querySelectorAll('.mind-node').forEach(node => {
@@ -1547,6 +2036,7 @@
         });
 
         updateStatus();
+        log('info', '연결 모드가 해제되었습니다.');
     }
 
     // === 클립보드 관리 ===
@@ -1603,6 +2093,7 @@
             }
         });
 
+        markChanged('노드 붙여넣기');
         log('info', `${mindmapState.clipboard.length}개 노드가 붙여넣기되었습니다.`);
     }
 
@@ -1615,6 +2106,138 @@
     }
 
     // === 기타 유틸리티 함수들 ===
+
+    function togglePanel(side) {
+        const panelSelector = side === 'right' ? '.right-panel' : '.left-panel';
+        const panel = document.querySelector(panelSelector);
+        if (!panel) return;
+
+        const collapsed = panel.classList.toggle('collapsed');
+        const label = side === 'right' ? '오른쪽' : '왼쪽';
+        log('info', `${label} 패널이 ${collapsed ? '숨겨졌습니다.' : '표시되었습니다.'}`);
+    }
+
+    function setMode(mode, options = {}) {
+        if (!['select', 'pan', 'connect'].includes(mode)) return;
+
+        const connectBtn = document.querySelector('[data-action="connect"]');
+
+        if (mode !== 'connect' && mindmapState.currentMode === 'connect') {
+            clearConnectMode();
+        }
+
+        if (mode === 'connect') {
+            mindmapState.currentMode = 'connect';
+            canvas.style.cursor = 'crosshair';
+            connectBtn?.classList.add('active');
+            updateStatus(options.message ?? '연결 모드: 첫 번째 노드를 선택하세요');
+            if (options.log !== false) {
+                log('info', '연결 모드가 활성화되었습니다.');
+            }
+            return;
+        }
+
+        mindmapState.currentMode = mode;
+        connectBtn?.classList.remove('active');
+        canvas.style.cursor = mode === 'pan' ? 'grab' : 'crosshair';
+        updateStatus();
+        if (options.log !== false) {
+            log('info', mode === 'pan' ? '이동 모드가 활성화되었습니다.' : '선택 모드가 활성화되었습니다.');
+        }
+    }
+
+    function cycleMode() {
+        if (mindmapState.currentMode === 'pan') {
+            setMode('select');
+        } else {
+            setMode('pan');
+        }
+    }
+
+    function resetView() {
+        mindmapState.panX = 0;
+        mindmapState.panY = 0;
+        setZoom(1.0);
+        markChanged('뷰 초기화');
+        updateStatus('뷰를 초기화했습니다.');
+        log('info', '뷰가 초기화되었습니다.');
+    }
+
+    function getDefaultStyle(isRoot) {
+        if (isRoot) {
+            return {
+                backgroundColor: '#0e7db8',
+                color: '#ffffff',
+                borderColor: '#1890d9',
+                fontSize: 14
+            };
+        }
+        return {
+            backgroundColor: '#505050',
+            color: '#ffffff',
+            borderColor: '#666666',
+            fontSize: 14
+        };
+    }
+
+    function applyStyleToNode(node, style) {
+        node.style = { ...node.style, ...style };
+        if (node.element) {
+            node.element.style.backgroundColor = node.style.backgroundColor;
+            node.element.style.color = node.style.color;
+            node.element.style.borderColor = node.style.borderColor;
+            node.element.style.fontSize = `${node.style.fontSize}px`;
+        }
+    }
+
+    function resetSelectedNodeStyles() {
+        if (mindmapState.selectedNodes.size === 0) {
+            log('warn', '선택한 노드가 없습니다.');
+            return;
+        }
+
+        mindmapState.selectedNodes.forEach(nodeId => {
+            const node = mindmapState.nodes.get(nodeId);
+            if (node) {
+                const defaults = getDefaultStyle(node.isRoot);
+                applyStyleToNode(node, defaults);
+            }
+        });
+
+        updateProperties();
+        markChanged('노드 스타일 초기화');
+        log('info', '선택한 노드의 스타일을 초기화했습니다.');
+    }
+
+    function toggleTheme() {
+        if (!body) return;
+        const isLight = body.classList.toggle('theme-light');
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, isLight ? 'light' : 'dark');
+        } catch (error) {
+            log('warn', '테마 설정을 저장하지 못했습니다.');
+        }
+        markChanged('테마 전환');
+        log('info', `테마가 ${isLight ? '라이트' : '다크'} 모드로 변경되었습니다.`);
+    }
+
+    function loadThemePreference() {
+        if (!body) return;
+        try {
+            const saved = localStorage.getItem(THEME_STORAGE_KEY);
+            if (saved === 'light') {
+                body.classList.add('theme-light');
+            }
+        } catch (error) {
+            log('warn', '저장된 테마를 불러오지 못했습니다.');
+        }
+    }
+
+    function closeAllMenus() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    }
 
     function setDirty(dirty) {
         mindmapState.isDirty = dirty;
@@ -1629,6 +2252,7 @@
     }
 
     function showContextMenu(x, y) {
+        closeAllMenus();
         contextMenu.style.display = 'block';
         contextMenu.style.left = x + 'px';
         contextMenu.style.top = y + 'px';
@@ -1664,13 +2288,29 @@
     // === 추가 기능들 ===
 
     function undo() {
-        // 실제로는 명령 패턴을 사용하여 구현
-        log('info', '실행취소가 실행되었습니다.');
+        if (history.undoStack.length <= 1) {
+            log('warn', '실행취소할 변경사항이 없습니다.');
+            return;
+        }
+
+        const current = history.undoStack.pop();
+        history.redoStack.push(current);
+
+        const snapshot = history.undoStack[history.undoStack.length - 1];
+        restoreSnapshot(snapshot);
+        log('info', `실행취소: ${current.description || '이전 상태로 돌아갔습니다.'}`);
     }
 
     function redo() {
-        // 실제로는 명령 패턴을 사용하여 구현
-        log('info', '다시실행이 실행되었습니다.');
+        if (history.redoStack.length === 0) {
+            log('warn', '다시실행할 변경사항이 없습니다.');
+            return;
+        }
+
+        const snapshot = history.redoStack.pop();
+        history.undoStack.push(snapshot);
+        restoreSnapshot(snapshot);
+        log('info', `다시실행: ${snapshot.description || '최근 실행취소를 되돌렸습니다.'}`);
     }
 
     function toggleGrid() {
@@ -1803,19 +2443,12 @@
     }
 
     function showProperties() {
-        // 속성 패널에 포커스
-        document.querySelector('.right-panel').scrollIntoView();
+        const rightPanel = document.querySelector('.right-panel');
+        if (!rightPanel) return;
+        rightPanel.classList.remove('collapsed');
+        rightPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         log('info', '속성 패널을 표시했습니다.');
     }
-
-    // === 전역 이벤트 ===
-
-    // 전역 클릭으로 컨텍스트 메뉴와 드롭다운 닫기
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.context-menu')) {
-            hideContextMenu();
-        }
-    });
 
     // 자동 저장 (5분마다)
     setInterval(() => {
@@ -1835,90 +2468,4 @@
         init();
     }
 
-    let selectionBox = null;
-    let selectionStart = null;
-    let isSelecting = false;
-
-
-    function onCanvasMouseDown(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-
-    // Ctrl 키 누른 상태에서 왼쪽 버튼 드래그 → 멀티 선택 박스
-    if (e.button === 0 && e.ctrlKey) {
-    isSelecting = true;
-    selectionStart = { x, y };
-
-
-    selectionBox = document.createElement('div');
-    selectionBox.className = 'selection-box';
-    selectionBox.style.left = x + 'px';
-    selectionBox.style.top = y + 'px';
-    selectionBox.style.width = '0px';
-    selectionBox.style.height = '0px';
-    canvas.parentElement.appendChild(selectionBox);
-
-
-    document.addEventListener('mousemove', onSelectionMouseMove);
-    document.addEventListener('mouseup', onSelectionMouseUp);
-    return;
-    }
-
-
-    // === 기존 Pan/노드 선택 로직 ===
-    if (mindmapState.currentMode === 'pan' || e.button === 1) {
-    ui.isDragging = true;
-    canvas.style.cursor = 'grabbing';
-    }
-    }
-
-
-    function onSelectionMouseMove(e) {
-    if (!isSelecting || !selectionStart) return;
-
-
-    const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
-
-
-    const x = Math.min(selectionStart.x, currentX);
-    const y = Math.min(selectionStart.y, currentY);
-    const w = Math.abs(selectionStart.x - currentX);
-    const h = Math.abs(selectionStart.y - currentY);
-
-
-    selectionBox.style.left = x + 'px';
-    selectionBox.style.top = y + 'px';
-    selectionBox.style.width = w + 'px';
-    selectionBox.style.height = h + 'px';
-    }
-
-
-    function onSelectionMouseUp(e) {
-    if (!isSelecting) return;
-
-
-    const boxRect = selectionBox.getBoundingClientRect();
-    document.querySelectorAll('.mind-node').forEach(nodeEl => {
-    const nodeRect = nodeEl.getBoundingClientRect();
-    if (!(nodeRect.right < boxRect.left || nodeRect.left > boxRect.right ||
-    nodeRect.bottom < boxRect.top || nodeRect.top > boxRect.bottom)) {
-    const nodeId = nodeEl.dataset.id;
-    selectNode(nodeId);
-    }
-    });
-
-
-    selectionBox.remove();
-    selectionBox = null;
-    selectionStart = null;
-    isSelecting = false;
-
-
-    document.removeEventListener('mousemove', onSelectionMouseMove);
-    document.removeEventListener('mouseup', onSelectionMouseUp);
-    }
 })();
